@@ -1,72 +1,95 @@
 <div align="center">
 
-# 🛡️ `cveli` — Search-First CVE & Vulnerability CLI/TUI
+```ascii
+ ██████╗██╗   ██╗███████╗██╗     ██╗
+██╔════╝██║   ██║██╔════╝██║     ██║
+██║     ██║   ██║█████╗  ██║     ██║
+██║     ╚██╗ ██╔╝██╔══╝  ██║     ██║
+╚██████╗ ╚████╔╝ ███████╗███████╗██║
+ ╚═════╝  ╚═══╝  ╚══════╝╚══════╝╚═╝
+```
 
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![Code Style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg?style=flat-square)](https://github.com/astral-sh/ruff)
-[![Type Checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blueviolet.svg?style=flat-square)](https://mypy-lang.org/)
-[![Tests Passing](https://img.shields.io/badge/tests-80%20passed-success.svg?style=flat-square)]()
-[![Built with Textual & Typer](https://img.shields.io/badge/UI-Typer%20%2B%20Rich%20%2B%20Textual-orange.svg?style=flat-square)](https://textual.textualize.io/)
+# 🛡️ CVELI — Search-First CVE & Vulnerability Intelligence CLI / TUI
 
-**A blazing-fast, offline-first command-line interface and interactive terminal dashboard (TUI) for searching, monitoring, and triaging Common Vulnerabilities and Exposures (CVEs).**
+**A modern, offline-first command-line terminal workspace and interactive TUI dashboard for searching, triaging, monitoring, and exporting Common Vulnerabilities and Exposures (CVEs).**
 
-[Features](#-key-features) • [Why cveli?](#-why-cveli) • [Quickstart](#-quickstart) • [Usage & Commands](#-command-reference) • [Interactive TUI](#-interactive-tui-mode) • [Architecture](#-architecture)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-F59E0B.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Framework: Textual](https://img.shields.io/badge/TUI-Textual-00C7B7.svg?style=for-the-badge&logo=gnometerminal&logoColor=white)](https://textual.textualize.io/)
+[![CLI: Typer & Rich](https://img.shields.io/badge/CLI-Typer%20%2B%20Rich-10B981.svg?style=for-the-badge)](https://typer.tiangolo.com/)
+[![Code Style: Ruff](https://img.shields.io/badge/Code%20Style-Ruff-000000.svg?style=for-the-badge&logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
+[![Type Checked: Mypy](https://img.shields.io/badge/Type%20Checked-Mypy-5849BE.svg?style=for-the-badge)](https://mypy-lang.org/)
+
+[Explore Features](#-key-features) • [Quickstart](#-quickstart) • [CLI Commands](#-command-reference) • [Interactive TUI](#-interactive-tui-dashboard) • [Architecture](#-architecture) • [Contributing](#-contributing)
 
 </div>
 
 ---
 
-## 💡 Why `cveli`?
+## ⚡ Why CVELI?
 
-Security engineers, DevOps teams, and developers often need to check vulnerability impact instantly without leaving their terminal or clicking through slow web consoles.
+Security analysts, DevOps engineers, and vulnerability researchers often waste valuable time jumping between sluggish web interfaces or parsing inconsistent raw feeds. 
 
-- ⚡ **Zero-Friction Terminal Velocity:** Query CVEs by keywords, severity, CVSS scores, EPSS probabilities, CWE identifiers, or affected vendors with sub-second response times.
-- 💾 **Local-First SQLite & Disk Caching:** Synchronizes vulnerability feeds (NVD, CISA KEV) to local storage so you can search completely offline or behind restricted air-gapped environments.
-- 🖥️ **Rich TUI + Unix Scriptable CLI:** Enjoy an interactive Textual terminal dashboard with keyboard navigation, or pipe structured JSON/CSV/Markdown output straight into your CI/CD pipelines and vulnerability assessment workflows.
-- 🎯 **Proactive Watchlist Alerts:** Monitor software dependencies, mission-critical infrastructure vendors (e.g., `OpenSSL`, `nginx`, `Fortinet`), or specific CWE types.
+**CVELI** brings vulnerability intelligence directly to your fingertips with sub-second terminal queries, offline SQLite caching, multi-source ingestion (NIST NVD + CISA KEV), watchlist tracking, and an interactive keyboard-first TUI dashboard.
+
+> 🚀 **Built for Speed & Frictionless Triage:** Query vulnerabilities by vendor, CVSS score, EPSS probability, CISA KEV exploitation status, or publication timeframes in milliseconds.
 
 ---
 
 ## ✨ Key Features
 
-| Feature | Description |
+| Capability | Highlights |
 |---|---|
-| **🔍 Search & Filter Engine** | Search by keyword, vendor, CVSS score (`--min-cvss`), EPSS exploit probability, CWE ID, or active CISA KEV exploitation flags. |
-| **🔄 Multi-Source Sync** | Ingest up-to-date vulnerability feeds directly from **NIST NVD** (API 2.0) and **CISA Known Exploited Vulnerabilities (KEV)** catalog. |
-| **📊 Interactive TUI Dashboard** | Fullscreen terminal UI built with Textual: real-time live search, interactive CVE inspector, CVSS gauge, and filter drawer. |
-| **👀 Watchlist Engine** | Save monitored vendors, products, or CWE categories and trigger instant status checks against new advisories. |
-| **📤 Multi-Format Export** | Export search results and cached vulnerability subsets directly to **JSON**, **CSV**, **Markdown**, or plain text. |
-| **📈 Local Database & Stats** | SQLite storage with automatic index optimization and disk cache layer for instant fuzzy search and breakdown analytics. |
+| 🔍 **Multi-Vector Search Engine** | Token matching, fuzzy search (rapidfuzz), CVSS/EPSS scoring filters, vendor/product queries, and CWE categorization. |
+| 🌐 **Multi-Source Synchronization** | Ingest and normalize security feeds from **NIST NVD API 2.0**, **CISA KEV** (Known Exploited Vulnerabilities), and **CVE.org**. |
+| 🖥️ **Interactive Textual TUI** | Fullscreen keyboard-driven terminal dashboard featuring live query updates, CVE inspectors, CVSS metric gauges, and quick filters. |
+| 🎯 **Proactive Watchlist** | Track mission-critical components, software stacks, or CWE types with instant vulnerability alert scanning. |
+| 📊 **Local SQLite & Disk Cache** | High-performance local SQLite storage with automated indexing and disk caching for fully offline or air-gapped workflows. |
+| 📤 **Multi-Format Reporting** | Export security advisories and query results directly to **JSON**, **CSV**, **Markdown**, or plaintext reports. |
+| 🛠️ **Unix-Friendly & Scriptable** | Clean piping capabilities with JSON outputs ready for tools like `jq`, custom automation, or CI/CD security pipelines. |
+
+---
+
+## 🎬 Terminal Preview
+
+```
+$ cveli search "OpenSSL" --min-cvss 7.5 --range 1y
+
+┌────────────────┬──────────┬──────┬─────────┬───────────────────────────────┬────────────┐
+│ CVE ID         │ Severity │ CVSS │ EPSS    │ Summary                       │ Published  │
+├────────────────┼──────────┼──────┼─────────┼───────────────────────────────┼────────────┤
+│ CVE-2024-0727  │ HIGH     │ 7.5  │ 0.0420  │ PKCS12 Decoding crash trigger │ 2024-01-25 │
+│ CVE-2024-2511  │ HIGH     │ 7.5  │ 0.0381  │ Unbounded memory growth TLSv1 │ 2024-04-08 │
+│ CVE-2024-4741  │ HIGH     │ 7.5  │ 0.0294  │ Use-After-Free in SSL_free    │ 2024-05-28 │
+└────────────────┴──────────┴──────┴─────────┴───────────────────────────────┴────────────┘
+Found 3 high/critical vulnerabilities matching criteria.
+```
 
 ---
 
 ## 🚀 Quickstart
 
 ### Prerequisites
-- Python **3.12+**
+- **Python 3.12+**
 - `git`
 
 ### Installation
 
-Clone the repository and set up a clean virtual environment:
-
 ```bash
-# Clone the repository
-git clone https://github.com/jeevansai-k/cve-cli.git
-cd cve-cli
+# 1. Clone the repository
+git clone https://github.com/jeevansai-k/cveli.git
+cd cveli
 
-# Create and activate virtual environment
+# 2. Create and activate a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Install in editable mode with development tools
+# 3. Install in editable mode with development dependencies
 pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-Verify the installation:
-
+Verify your installation:
 ```bash
 cveli --help
 ```
@@ -75,24 +98,11 @@ cveli --help
 
 ## 📖 Command Reference
 
-### 1. Ingest & Sync Feeds (`cveli sync`)
-Fetch and cache vulnerability records from external feeds into the local SQLite database.
+### 1. Search & Filter (`cveli search`)
+Search through local and live feeds with rich colorized tables or interactive browsers.
 
 ```bash
-# Sync recent vulnerabilities matching a query (e.g. OpenSSL)
-cveli sync --query openssl --limit 50
-
-# Sync recent high-priority vulnerabilities from all sources (NVD + CISA KEV)
-cveli sync --limit 100
-```
-
----
-
-### 2. Search & Triage (`cveli search`)
-Search through local records with rich color-coded terminal tables and interactive selection.
-
-```bash
-# Basic keyword search
+# Search by keyword
 cveli search openssl
 
 # Filter by minimum CVSS score and severity
@@ -101,56 +111,47 @@ cveli search linux --min-cvss 8.5 --severity Critical
 # Filter for vulnerabilities with confirmed in-the-wild exploits (CISA KEV)
 cveli search microsoft --exploit-only
 
-# Filter by specific CWE category and vendor
+# Filter by specific vendor and CWE classification
 cveli search --vendor apache --cwe CWE-79
 
 # Filter by publication timeframe (1m, 3m, 6m, 1y, 2y, 5y, complete)
 cveli search kubernetes --range 6m --limit 25
-```
 
-#### Output Formats & Interactive Selection
-```bash
-# Open an interactive detail browser directly in the terminal
+# Launch the interactive terminal detail browser
 cveli search fortinet --interactive
 
-# Print as clean JSON to pipe into jq or tools
-cveli search nginx --format json | jq '.[] | {id: .id, cvss: .cvss}'
-
-# Output as formatted Markdown table
-cveli search sudo --format md
+# Output JSON directly to pipe into jq or CI pipelines
+cveli search nginx --format json | jq '.[] | {id: .id, cvss: .cvss_score}'
 ```
 
 ---
 
-### 3. Interactive TUI Mode (`cveli tui`)
-Launch the terminal user interface for mouse and keyboard-driven vulnerability inspection:
+### 2. Ingest & Sync Feeds (`cveli sync`)
+Fetch, parse, and synchronize vulnerability feeds into the local SQLite database.
 
 ```bash
-cveli tui
-```
-*(Or simply execute `cveli` with no arguments to launch the TUI directly).*
+# Sync recent vulnerabilities matching a keyword
+cveli sync --query openssl --limit 50
 
-**Keybindings:**
-- `q` / `Ctrl+C` — Quit TUI
-- `Tab` / `Shift+Tab` — Focus search input / result table
-- `Up` / `Down` — Navigate through CVE items
-- `Enter` — Open detailed vulnerability inspector
+# Ingest high-priority feeds across sources (NVD API 2.0 & CISA KEV)
+cveli sync --limit 100
+```
 
 ---
 
-### 4. Watchlist Monitoring (`cveli watchlist`)
-Track critical components in your software stack and inspect their exposure.
+### 3. Watchlist Monitoring (`cveli watchlist`)
+Keep a proactive watch on your company's tech stack, third-party libraries, and software dependencies.
 
 ```bash
-# Add targets to watchlist
+# Add monitored targets to your watchlist
 cveli watchlist add --type vendor --value "OpenSSL" --notes "Core crypto library"
-cveli watchlist add --type product --value "PostgreSQL"
-cveli watchlist add --type cwe --value "CWE-89" --notes "SQL Injection"
+cveli watchlist add --type product --value "PostgreSQL" --notes "Production database"
+cveli watchlist add --type cwe --value "CWE-89" --notes "SQL Injection patterns"
 
 # List all tracked targets
 cveli watchlist list
 
-# Check matching vulnerability alerts for your watchlist
+# Run a vulnerability alert check against active watchlist targets
 cveli watchlist check
 
 # Remove a target by ID
@@ -159,8 +160,8 @@ cveli watchlist remove --id <TARGET_ID>
 
 ---
 
-### 5. Export Reports (`cveli export`)
-Export filtered security records to share with compliance, engineering, or audit teams:
+### 4. Export Reports (`cveli export`)
+Export filtered security records to share with DevOps, compliance, or incident response teams.
 
 ```bash
 # Export to JSON
@@ -175,8 +176,8 @@ cveli export linux --severity Critical --output reports/linux_critical.md --form
 
 ---
 
-### 6. Vulnerability Statistics (`cveli stats`)
-Inspect local cache telemetry, severity distribution, and total indexed records:
+### 5. Vulnerability Statistics (`cveli stats`)
+View local database metrics, severity breakdown, and cached records telemetry:
 
 ```bash
 cveli stats
@@ -184,15 +185,52 @@ cveli stats
 
 ---
 
-## ⚙️ Configuration
+## 🖥️ Interactive TUI Dashboard
 
-Optional configuration can be defined via environment variables or a `.env` file in the project root:
+Launch the full-screen terminal user interface with mouse & keyboard controls:
+
+```bash
+cveli tui
+```
+*(Or simply run `cveli` with no arguments)*
+
+```
+┌────────────────────────────────────────────────────────────────────────────┐
+│ 🛡️  CVELI - Vulnerability Intelligence Dashboard                          │
+├────────────────────────────────────────────────────────────────────────────┤
+│ [Search: openssl__________________]  [Range: 1y ▼]  [Severity: All ▼]      │
+├────────────────────────────────────────────────────────────────────────────┤
+│ CVE ID         │ SEVERITY │ CVSS │ EPSS   │ SUMMARY                        │
+│ CVE-2024-0727  │ HIGH     │ 7.5  │ 0.042  │ PKCS12 Decoding crash trigger  │
+│ CVE-2024-2511  │ HIGH     │ 7.5  │ 0.038  │ Unbounded memory growth TLSv1  │
+│ CVE-2024-4741  │ HIGH     │ 7.5  │ 0.029  │ Use-After-Free in SSL_free     │
+├────────────────────────────────────────────────────────────────────────────┤
+│ [Detail Inspector: CVE-2024-4741]                                          │
+│ Impact: High CVSS 7.5 | Vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H│
+│ Description: Specially crafted ASN.1 structures trigger heap corruption... │
+└────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Keyboard Shortcuts
+| Key | Action |
+|---|---|
+| `q` / `Ctrl+C` | Exit TUI |
+| `Tab` / `Shift+Tab` | Toggle focus between Search input and Results table |
+| `Up` / `Down` | Navigate through CVE list |
+| `Enter` | Open full CVE detail inspector panel |
+| `Esc` | Close modal / return focus |
+
+---
+
+## ⚙️ Configuration & Environment
+
+Configuration can be set via environment variables or a `.env` file in the project root:
 
 ```ini
-# Optional: NIST NVD API key to avoid strict public rate limiting
+# NIST NVD API Key (Recommended to increase rate limits from 5 to 50 req/30s)
 NVD_API_KEY=your_nvd_api_key_here
 
-# Optional: Custom database and cache paths
+# Optional: Custom storage & cache paths
 CVELI_DB_PATH=storage/cveli.db
 CVELI_CACHE_DIR=.cache/cveli
 CVELI_LOG_LEVEL=INFO
@@ -202,67 +240,120 @@ CVELI_LOG_LEVEL=INFO
 
 ## 🏗️ Architecture
 
+CVELI is designed around clean domain layers and modular adapters:
+
+```mermaid
+graph TD
+    User([User / Script / CI]) --> Interface[CVELI Interface Layer]
+    
+    subgraph "Presentation Layer"
+        Interface --> CLI[Typer CLI Commands]
+        Interface --> TUI[Textual TUI Dashboard]
+        Interface --> Formatter[Rich Tables & Formatters]
+    end
+    
+    subgraph "Core & Service Layer"
+        CLI --> SearchService[Search & Filter Engine]
+        CLI --> SyncService[Feed Sync Service]
+        CLI --> WatchlistService[Watchlist Engine]
+        CLI --> ExportService[Multi-Format Exporter]
+    end
+    
+    subgraph "Data Sources (Adapters)"
+        SyncService --> NVD[NIST NVD API 2.0]
+        SyncService --> CISA[CISA KEV Feed]
+        SyncService --> CVEOrg[CVE.org API]
+    end
+    
+    subgraph "Persistence Layer"
+        SearchService <--> SQLite[(SQLite Database)]
+        SearchService <--> DiskCache[(DiskCache Layer)]
+    end
+
+    classDef accent fill:#10B981,stroke:#059669,color:#ffffff,stroke-width:2px;
+    classDef surface fill:#1E293B,stroke:#475569,color:#F8FAFC;
+    class Interface,SQLite,DiskCache accent;
+    class CLI,TUI,Formatter,SearchService,SyncService,WatchlistService,ExportService,NVD,CISA,CVEOrg surface;
 ```
-cve-cli/
-├── cli/                # User Interface Layer
-│   ├── app.py          # Typer application entry point & routing
-│   ├── commands/       # CLI subcommands (search, sync, export, watchlist, stats)
-│   └── tui/            # Textual TUI dashboard & interactive widgets
+
+### Directory Structure
+
+```
+cveli/
+├── cli/                # Presentation Layer (Typer subcommands & Textual TUI)
+│   ├── app.py          # Application entrypoint & CLI routing
+│   ├── branding.py     # Terminal branding & ASCII artwork
+│   ├── commands/       # CLI commands (search, sync, export, watchlist, stats)
+│   └── tui/            # Textual TUI app, screens, and widgets
 ├── core/               # Domain Business Logic
-│   ├── models.py       # Pydantic v2 data models (CVEModel, CWEID, etc.)
-│   ├── search.py       # Query processing & token matching
-│   ├── filters.py      # Severity, CVSS, EPSS & timeframe filters
+│   ├── models.py       # Pydantic v2 data models (CVEModel, Severity, etc.)
+│   ├── search.py       # Multi-field query execution & fuzzy matching
+│   ├── filters.py      # Severity, CVSS, EPSS & range filters
 │   └── formatter.py    # Rich terminal tables, panels & exporters
 ├── sources/            # Upstream Feed Adapters
-│   ├── nvd.py          # NIST NVD API 2.0 client
-│   ├── cve_org.py      # CVE.org vulnerability feed parser
-│   └── vendor.py       # CISA KEV & vendor feed adapters
-├── services/           # Service Orchestration Layer
-│   ├── sync.py         # Multi-feed ingestion & normalization
-│   ├── export.py       # JSON/CSV/Markdown/Text serialization
-│   └── watchlist.py    # Target CRUD & vulnerability matching
-├── storage/            # Data & Persistence Layer
-│   ├── database.py     # SQLite schema & SQLAlchemy 2.0 ORM session
-│   ├── repositories.py # CVERepository data access layer
-│   └── cache.py        # DiskCache query acceleration layer
-└── tests/              # Test suite (80 unit & integration tests)
+│   ├── base.py         # Abstract Base Adapter interface
+│   ├── nvd.py          # NIST NVD API 2.0 adapter
+│   ├── cve_org.py      # CVE.org vulnerability feed adapter
+│   ├── vendor.py       # CISA KEV & vendor feed adapters
+│   └── epss.py         # EPSS score adapter
+├── services/           # Application Service Orchestration
+│   ├── sync.py         # Multi-feed ingestion & database synchronization
+│   ├── export.py       # JSON/CSV/Markdown/Plaintext export service
+│   ├── watchlist.py    # Monitored targets & proactive alerting
+│   └── analytics.py   # Severity distribution & cache telemetry
+├── storage/            # Persistence Layer
+│   ├── database.py     # SQLite connection & SQLAlchemy 2.0 ORM session
+│   ├── repositories.py # CVERepository Data Access Layer (DAL)
+│   └── cache.py        # DiskCache query acceleration
+├── docs/               # Architecture, API & Contributing documentation
+└── tests/              # Comprehensive test suite (80+ unit & integration tests)
 ```
 
 ---
 
-## 🧪 Testing & Quality
+## 🧪 Testing & Quality Assurance
 
-`cveli` is thoroughly tested across all core layers with `pytest`, `mypy`, and `ruff`:
+CVELI maintains high test coverage with automated unit, integration, and linting checks:
 
 ```bash
-# Run test suite
+# Run pytest suite
 pytest -v
 
-# Run with coverage report
+# Run with test coverage report
 pytest --cov=. --cov-report=term-missing
 
-# Lint & formatting check
+# Linting and formatting checks
 ruff check .
 ruff format --check .
 
 # Static type checking
-mypy cli core services sources storage
+mypy cli core services sources storage utils
 ```
 
 ---
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome!
+Contributions, feedback, and feature requests are warmly welcomed!
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m "feat: add amazing feature"`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+1. **Fork** the repository
+2. **Create** your feature branch (`git checkout -b feat/my-new-feature`)
+3. **Commit** your changes (`git commit -m "feat: add support for custom feed"`)
+4. **Push** to the branch (`git push origin feat/my-new-feature`)
+5. **Open** a Pull Request
+
+See [CONTRIBUTING.md](docs/contributing.md) for detailed guidelines.
 
 ---
 
 ## 📄 License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Crafted with 💚 by [**Jeevan Sai (@jeevansai-k)**](https://github.com/jeevansai-k)
+
+</div>

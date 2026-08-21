@@ -1,13 +1,13 @@
-# CVE Sentinel Architecture
+# CVELI Architecture
 
 ## Overview
 
-CVE Sentinel is a CLI/TUI tool for searching, browsing, and managing Common Vulnerabilities and Exposures (CVE) data. It provides an extensible architecture that separates concerns across multiple layers of the application.
+**CVELI** is a high-performance CLI/TUI tool for searching, browsing, triaging, and managing Common Vulnerabilities and Exposures (CVE) data. It provides an extensible, modular architecture with clean separation of concerns.
 
 ## Project Structure
 
 ```
-cve-cli/
+cveli/
 ├── cli/                   # Presentation layer (menus, TUI widgets)
 │   ├── app.py             # Main CLI entry point using typer
 │   ├── commands/          # Command-line subcommands (Typer)

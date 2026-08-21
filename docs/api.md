@@ -1,4 +1,4 @@
-# CVE Sentinel API Reference
+# CVELI API Reference
 
 ## Core Module (`core/`)
 
@@ -76,9 +76,9 @@ class BaseAdapter(ABC):
 
 | Command | Description | Usage Example |
 |---------|-------------|---------------|
-| `sync` | Synchronize data from sources | `cve-sentinel sync --source nvd` |
-| `search` | Search local database for CVEs | `cve-sentinel search python vulnerable` |
-| `export` | Export results to file formats | `cve-sentinel export --format json` |
+| `sync` | Synchronize data from sources | `cveli sync --query openssl` |
+| `search` | Search local database for CVEs | `cveli search python` |
+| `export` | Export results to file formats | `cveli export --format json` |
 
 ## Data Model (Canonical CVE Format)
 

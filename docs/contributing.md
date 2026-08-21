@@ -1,4 +1,4 @@
-# Contributing to CVE Sentinel
+# Contributing to CVELI
 
 ## Getting Started
 

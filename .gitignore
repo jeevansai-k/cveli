@@ -31,6 +31,7 @@ MANIFEST
 venv/
 ENV/
 env/
+test/
 env.bak/
 venv.bak/
 
@@ -49,6 +50,7 @@ storage/*.db
 storage/*.sqlite
 .cache/
 .diskcache/
+storage/.cache/
 
 # Testing & Coverage
 .pytest_cache/
@@ -56,7 +58,6 @@ storage/*.sqlite
 .nox/
 .coverage
 .coverage.*
-.cache
 nosetests.xml
 coverage.xml
 *.cover
@@ -73,6 +74,7 @@ dmypy.json
 # IDEs & Editors
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~
@@ -83,3 +85,9 @@ dmypy.json
 *.tmp
 tmp/
 scratch/
+
+# Local Dev Scratch & Notes (keep clean for repository)
+mid.md
+completed.md
+cve-plan.md
+run-cveli.txt
