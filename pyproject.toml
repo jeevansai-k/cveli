@@ -9,7 +9,7 @@ description = "CLI/TUI tool for searching and managing CVE vulnerabilities"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
-    { name = "Jeevan Sai", email = "jeevansai@example.com" },
+    { name = "Jeevan Sai", email = "kukkalajeevansai@gmail.com" },
 ]
 urls = { "Homepage" = "https://github.com/jeevansai-k/cveli", "Repository" = "https://github.com/jeevansai-k/cveli" }
 classifiers = [
