@@ -1,0 +1,48 @@
+/* CVE Sentinel Textual CSS Stylesheet */
+
+/* Main container with fixed dimensions */
+.main-container {
+    width: 80;
+    height: 24;
+}
+
+#title {
+    width: 100%;
+    text-align: center;
+    font-size: 3rem;
+    color: teal;
+}
+
+/* Header and Footer styling */
+Header, Footer {
+    width: 100%;
+    height: auto;
+}
+
+/* Panel styling for stats sections */
+#stats_panel {
+    padding: 2rem;
+}
+
+/* Stat value styling - large numbers in teal */
+.stat_value {
+    font-size: 3rem;
+    color: teal;
+}
+
+/* Results table styling */
+table {
+    border: none;
+    width: 100%;
+    height: auto;
+}
+
+th, td {
+    padding: 2rem;
+}
+
+/* Input field styling for search */
+input {
+    font-size: 1.5rem;
+    color: teal;
+}
