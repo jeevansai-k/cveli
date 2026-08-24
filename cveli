@@ -1,11 +1,15 @@
-#!/usr/bin/env python3
-"""cveli CLI entry point wrapper script."""
-import sys
-from pathlib import Path
+#!/usr/bin/env bash
+set -euo pipefail
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+SOURCE="${BASH_SOURCE[0]}"
+if command -v readlink >/dev/null 2>&1; then
+  SOURCE="$(readlink -f "$SOURCE")"
+fi
+ROOT="$(cd -- "$(dirname -- "$SOURCE")" && pwd)"
+PYTHON="$ROOT/.venv/bin/python"
 
-from cli.app import app
+if [[ ! -x "$PYTHON" ]]; then
+  PYTHON="python3"
+fi
 
-if __name__ == '__main__':
-    app()
+exec "$PYTHON" "$ROOT/main.py" "$@"
