@@ -11,449 +11,243 @@
  ╚═════╝  ╚═══╝  ╚══════╝╚══════╝╚═╝
 ```
 
-# 🛡️ CVELI — Search-First CVE & Vulnerability Intelligence CLI / TUI
-
-**A modern, terminal-first platform for searching, triaging, monitoring and exporting real-time Common Vulnerabilities & Exposures (CVEs).**
+**CVELI 2.0 — search-first CVE & vulnerability intelligence for the terminal.**
 
 *Created by **jeevansai-k***
 
-![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge\&logo=python\&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Textual](https://img.shields.io/badge/TUI-Textual-00C7B7?style=for-the-badge)
 ![Typer](https://img.shields.io/badge/CLI-Typer%20%2B%20Rich-10B981?style=for-the-badge)
 ![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-F59E0B?style=for-the-badge)
 
-**Real-time CVE Intelligence • Interactive TUI • Offline Cache • Multi-Source Search**
-
 </div>
 
----
+CVELI unifies **NVD**, **CVE.org**, **CISA KEV**, **FIRST EPSS** and **Exploit-DB
+metadata** in one fast, keyboard-first terminal app with an offline cache, a Google
+Dork Builder with safety guardrails, and a generator for *non-weaponized*
+Metasploit research templates — all styled with the new **Opus 5.5** theme.
 
-# ⚡ Why CVELI?
-
-Security analysts constantly switch between **NVD**, **CVE.org**, **CISA KEV**, and **FIRST EPSS** to investigate vulnerabilities. CVELI unifies all of them into one fast, beautiful terminal application with intelligent caching, real-time searching, and an interactive Textual interface.
-
-### Built For
-
-* 🔐 Security Engineers
-* 🛡️ SOC Analysts
-* 🚨 Incident Responders
-* ☁️ DevSecOps Teams
-* 🎯 Vulnerability Researchers
+> **Authorized, defensive use only.** CVELI never exploits, scans or contacts the
+> systems you research. It does not download exploit code, scrape Google or
+> Exploit-DB, or build credential/secret-hunting queries. You are responsible for
+> having written authorization for anything you test.
 
 ---
 
-# ✨ Key Features
+## What's new in 2.0
 
-| Capability                       | Description                                              |
-| -------------------------------- | -------------------------------------------------------- |
-| 🔍 **Real-Time Search**          | Search official CVE databases with intelligent filtering |
-| ⚡ **Smart Cache**                | SQLite + DiskCache for extremely fast repeated searches  |
-| 🖥️ **Interactive TUI**          | Keyboard-driven CVE browser with beautiful navigation    |
-| 🌐 **Multi-Source Intelligence** | NVD, CVE.org, CISA KEV & FIRST EPSS                      |
-| 📊 **Detailed CVE Inspector**    | CVSS, EPSS, KEV, CWE, Products & References              |
-| 📤 **Multi-Format Export**       | JSON, CSV, Markdown & TXT                                |
-| 🎯 **Watchlists**                | Track Vendors, Products & CWEs                           |
-| 💾 **Offline-First**             | Previously fetched real CVEs remain searchable locally   |
+| Area | Highlights |
+|---|---|
+| Reliability | 17 bugs fixed with regression tests — incl. a data-loss bug where KEV/EPSS refreshes wiped stored CVSS scores, `.env` settings being ignored, `--range` not filtering cached results, missing NVD pagination/rate limiting |
+| Exploit-DB | Local index of the official `files_exploits.csv` (46k+ entries): search by CVE, EDB-ID, product (fuzzy), vendor, version, platform, type, author, date; cross-linked into every CVE |
+| Dork Builder | Username + site → previewed, explained, copyable Google queries; blocks secret/credential/dump patterns; opening in a browser needs an authorization confirmation and is rate-limited |
+| MSF templates | `.rb` scaffold + Markdown research report + JSON metadata for a CVE/EDB entry; no payload or exploit logic; export requires a research-only confirmation |
+| Opus 5.5 theme | New shell (navigation, command bar, intel panel, command palette), dark default + light mode, WCAG AA contrast tested, responsive down to 76 columns |
+| Ops | XDG data paths, versioned DB migrations with automatic backup, `cveli doctor`, background jobs, local-only metrics, privacy purge |
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list and upgrade notes.
 
 ---
 
-# 🚀 Quick Start
-
-## Requirements
-
-* Python **3.12+**
-* Git
-
-## Installation
+## Quick start
 
 ```bash
 git clone https://github.com/jeevansai-k/cveli.git
 cd cveli
-
 python3 -m venv .venv
 source .venv/bin/activate
-
-python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
 ```
 
-Verify installation:
-
 ```bash
-cveli --help
+cveli            # open the TUI shell
+cveli --help     # all commands
+cveli doctor     # check settings, paths and data sources
 ```
+
+Optional: copy `.env.example` to `.env` and set `NVD_API_KEY` (raises the NVD
+rate limit from 5 to 50 requests per 30 s).
 
 ---
 
-# 📖 Command Reference
+## Command reference
 
-## 🔍 Search CVEs
-
-By default, searches only the **last 1 year** for maximum speed.
+### Search CVEs
 
 ```bash
-# Default (1 Year)
-cveli search http
-
-# Exact CVE
-cveli search CVE-2025-32756
-
-# Force live lookup
-cveli search fortinet --live
-
-# Cached search
-cveli search nginx --cache
-
-# Historical searches
-cveli search openssl --range 3y
-cveli search apache --range 5y
-
-# Complete historical database
-cveli search microsoft --range complete
-
-# JSON output
-cveli search CVE-2025-32756 --format json
+cveli search openssl                     # last year, live + cache
+cveli search CVE-2021-44228 --format detail
+cveli search fortinet --range 5y --kev   # CISA KEV only
+cveli search apache --public-exploit     # has Exploit-DB references
+cveli search nginx --cache -f json       # offline, machine-readable
 ```
 
-### Search Options
+| Option | Description |
+|---|---|
+| `--severity` / `--min-cvss` / `--vendor` / `--cwe` | Filters (validated) |
+| `--kev` · `--public-exploit` | CISA KEV listed · has Exploit-DB references (`--exploits` is a deprecated alias for `--kev`) |
+| `--range` | `1m 3m 6m 9m 1y 2y 3y 4y 5y complete` — applies to live *and* cached results |
+| `--live/--cache` | Query live sources first (default) or local data only |
+| `--sort` | `published cvss epss updated id` |
+| `--format` | `table` (TUI on a terminal, plain table otherwise), `json`, `markdown`, `detail`, `plain` |
 
-| Option       | Description                                                      |
-| ------------ | ---------------------------------------------------------------- |
-| `--severity` | Critical, High, Medium, Low                                      |
-| `--min-cvss` | Minimum CVSS score                                               |
-| `--vendor`   | Vendor filter                                                    |
-| `--cwe`      | Filter by CWE                                                    |
-| `--exploits` | Show KEV/Public exploited records                                |
-| `--limit`    | Maximum records                                                  |
-| `--live`     | Force live API lookup                                            |
-| `--cache`    | Use cached records only                                          |
-| `--range`    | `1m`, `3m`, `6m`, `9m`, `1y`, `2y`, `3y`, `4y`, `5y`, `complete` |
-| `--format`   | `table`, `json`, `markdown`, `detail`                            |
-
----
-
-## 🔄 Synchronize Sources
+### Exploit-DB research (metadata only)
 
 ```bash
-# Synchronize all sources
-cveli sync
-
-# NVD only
-cveli sync --source nvd
-
-# CISA KEV only
-cveli sync --source cisa_kev
+cveli exploits refresh                      # downloads files_exploits.csv if changed (24 h TTL)
+cveli exploits refresh --from-path /usr/share/exploitdb   # offline / SearchSploit install
+cveli exploits search --cve CVE-2021-44228
+cveli exploits search --product "wordpress" --version 5.8 --type webapps --verified
+cveli exploits search apache --platform linux --since 2023-01-01 --save linux-apache
+cveli exploits search --load linux-apache -f json
+cveli exploits show EDB-50592
+cveli exploits status
 ```
 
----
+Every result shows provenance (Exploit-DB link, original advisory), date, platform,
+type, author, verified status and **safety labels** (`Research only`,
+`Requires authorized environment`, `Proof-of-concept reference`, `Unverified`, …).
 
-## 📤 Export Reports
+### Google Dork Builder
 
 ```bash
-# JSON
-cveli export openssl --format json --output reports/openssl.json
-
-# CSV
-cveli export fortinet --format csv --output reports/fortinet.csv
-
-# Markdown
-cveli export nginx --format markdown --output reports/nginx.md
-
-# TXT
-cveli export apache --format txt --output reports/apache.txt
+cveli dork sites
+cveli dork build --username alice --site github.com
+cveli dork build -u alice -s example.com --category documents --filetype pdf
+cveli dork build -s example.com --category subdomains        # medium risk, warned
+cveli dork open  -t public_profile_domain -u alice -s example.com   # asks for confirmation
+cveli dork save  --project "Case 42" -u alice -s example.com
 ```
 
----
+Categories: profiles, posts, documents, files, code, subdomains, login pages, public
+directories, custom. Every operator is explained. Queries for passwords, tokens,
+keys, config files, database dumps or breach data are **blocked**, including in
+custom queries. CVELI never runs searches itself.
 
-## 🎯 Watchlist
+### Metasploit research templates
 
 ```bash
-# Add targets
-cveli watchlist add --type vendor --value Fortinet
-cveli watchlist add --type product --value OpenSSL
-cveli watchlist add --type cwe --value CWE-79
-
-# List
-cveli watchlist list
-
-# Check alerts
-cveli watchlist check
-
-# Remove
-cveli watchlist remove Fortinet
+cveli msf generate --cve CVE-2021-44228                 # preview .rb
+cveli msf generate --edb 50592 --preview md             # preview the report
+cveli msf generate --cve CVE-2021-44228 --out reports/  # export (asks for confirmation)
+cveli msf history
 ```
 
----
+The scaffold has the full metadata block, `check` returning `CheckCode::Unknown`,
+an action method that always stops with `fail_with`, TODO markers and the
+mandatory preflight checklist (authorization, scope, version confirmation,
+backup/rollback, non-production validation, disclosure plan).
 
-## 📊 Statistics
+### Other commands
 
 ```bash
+cveli sync --source all            # nvd, cve_org, cisa_kev, epss
+cveli export openssl -o report.csv -f csv
+cveli watchlist add -t vendor -v Fortinet && cveli watchlist check
+cveli project create "Case 42" && cveli project add "Case 42" cve CVE-2024-3400
+cveli settings theme light         # dark | light | auto
+cveli jobs run due                 # cron-friendly refresh of stale data
+cveli privacy notice
+cveli privacy purge
 cveli stats
+cveli cache status
 ```
-
-Displays:
-
-* Total CVEs
-* Severity distribution
-* KEV statistics
-* Cache metrics
-* Database information
 
 ---
 
-# 🖥️ Interactive TUI Dashboard
-
-Launch the dashboard:
-
-```bash
-cveli
-```
-
-### Terminal Preview
+## The TUI shell
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ 🛡️ CVELI - Vulnerability Intelligence Dashboard                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Search: fortinet          Range: 1 Year          Severity: All             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ #  CVE ID            Severity   CVSS   EPSS   Published     Vendor         │
-│ 1  CVE-2025-32756   HIGH       8.8    0.42   2025-05-14    Fortinet      │
-│ 2  CVE-2025-31218   MEDIUM     6.4    0.11   2025-04-08    Fortinet      │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ Alt+← Previous │ Alt+→ Next │ Enter Open │ Esc Back │ Q Main Menu         │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌ CVELI ─ [ Search CVE-ID, EDB-ID or keyword ( / ) ] ─────────── EDB 11-21 · KEV 11-21 ┐
+│ 1 ⌂ Dashboard     │ Search CVEs                                 │ Intel               │
+│ 2 ⌕ Search CVEs   │ [openssl            ] [1 year ▾] ☑ Live     │ CVE-2024-3400       │
+│ 3 ⚑ Exploit-DB    │ CVE ID          Severity    CVSS  EPSS  KEV │ Severity ◆ CRITICAL │
+│ 4 ⚲ Dork Builder  │ CVE-2024-3400   ◆ CRITICAL  10.0  94.3% YES │ EPSS     94.3%      │
+│ 5 ⎔ MSF Templates │ …                                           │ Exploit-DB 3 refs   │
+│ 6 ◉ Watchlist     │                                             │                     │
+│ 7 ▤ Projects      │                                             │                     │
+│ 8 ⚙ Settings      │                                             │                     │
+└ ^q Quit  ^t Theme  ^b Nav  f2 Intel ──────────────────────────────────── ^p palette ┘
 ```
 
-## Keyboard Shortcuts
+| Key | Action |
+|---|---|
+| `1`–`8` | Switch view |
+| `/` or `Ctrl+F` | Global search (CVE-ID, `EDB-…` or keyword) |
+| `Ctrl+P` | Command palette (navigate, theme, refresh data, jump to CVE/EDB) |
+| `Ctrl+T` | Toggle Opus 5.5 dark / light |
+| `Ctrl+B` / `F2` | Toggle navigation / intel panel |
+| `Enter` / `Esc` | Open / back · `M` research template from a detail screen |
+| `Alt+←/→` | Previous / next page in `cveli search` results |
+| `Ctrl+Q` | Quit |
 
-| Key     | Action               |
-| ------- | -------------------- |
-| ↑ / ↓   | Navigate CVEs        |
-| Enter   | Open highlighted CVE |
-| Alt + → | Next page            |
-| Alt + ← | Previous page        |
-| Esc     | Return to CVE list   |
-| Q       | Return to Main Menu  |
-| Ctrl+C  | Exit CVELI           |
-
----
-
-# 🌐 Real Data Sources
-
-CVELI only displays **real vulnerability intelligence**.
-
-| Source          | Data Used                              |
-| --------------- | -------------------------------------- |
-| **NVD API 2.0** | CVSS, CWE, Products, References, Dates |
-| **CVE.org**     | Official CVE Records & Metadata        |
-| **CISA KEV**    | Known Exploited Vulnerability Status   |
-| **FIRST EPSS**  | Exploit Prediction Scoring System      |
-
-> **Important:** Missing values are shown as **N/A**. CVELI never fabricates CVSS, EPSS, Vendors, Dates, Products or Summaries.
+Accessibility: every colour pair meets WCAG 2.2 AA contrast (tested), focus is
+always visible, severity is shown as symbol + word (never colour alone), motion can
+be reduced (`cveli settings motion --reduce` or `CVELI_REDUCE_MOTION=1`), and every
+feature has a plain CLI equivalent with `--format json` for screen readers and
+scripts. `NO_COLOR` is honoured. A monospace font with good Unicode coverage
+(JetBrains Mono, Fira Code, Cascadia Code) renders the icons best.
 
 ---
 
-# ⚙️ Search Workflow
+## Data sources
 
-## Default Search Pipeline
+| Source | Used for | Access |
+|---|---|---|
+| NVD API 2.0 | CVSS, CWE, products, references, dates | rate-limited, paginated, optional API key |
+| CVE.org | Official CVE records | exact CVE IDs |
+| CISA KEV | Known exploited status + date | catalogue cached 24 h |
+| FIRST EPSS | Exploit prediction score + percentile | batched ≤100 IDs |
+| Exploit-DB | Public exploit **metadata** (`files_exploits.csv`, GPL-2.0) | conditional GET, 24 h TTL, or local checkout |
 
-```text
-User Query
-     │
-     ▼
-Last 1 Year Filter
-     │
-     ▼
-Cache Lookup
-     │
- ┌───┴──────────────┐
- │                  │
- │ Cache Hit        │ Cache Miss
- │                  │
- ▼                  ▼
-Instant Results   Live Sources
-                     │
-                     ▼
-            Normalize & Validate
-                     │
-                     ▼
-              Store in Cache
-                     │
-                     ▼
-               Render Results
-```
+Missing values are shown as **N/A** — CVELI never fabricates scores, vendors, dates
+or descriptions.
 
 ---
 
-# 🏗️ Interactive System Architecture
+## Configuration
 
-```mermaid
-graph TD
-    User([User / Script / CI]) --> Interface[CVELI Interface Layer]
+All settings come from the environment or a `.env` file (current directory or
+`~/.config/cveli/.env`); see [.env.example](.env.example). Key variables:
 
-    subgraph "Presentation Layer"
-        Interface --> CLI[Typer CLI]
-        Interface --> TUI[Textual Dashboard]
-        Interface --> Rich[Rich Tables & Panels]
-    end
-
-    subgraph "Core Services"
-        CLI --> Search[Search Engine]
-        CLI --> Sync[Sync Service]
-        CLI --> Watch[Watchlist Engine]
-        CLI --> Export[Export Service]
-    end
-
-    subgraph "Real Intelligence Sources"
-        Sync --> NVD[NVD API 2.0]
-        Sync --> CVEORG[CVE.org]
-        Sync --> CISA[CISA KEV]
-        Sync --> EPSS[FIRST EPSS]
-    end
-
-    subgraph "Persistence Layer"
-        Search <--> SQLite[(SQLite)]
-        Search <--> Cache[(DiskCache)]
-    end
-
-    classDef accent fill:#10B981,stroke:#059669,color:#ffffff,stroke-width:2px;
-    classDef surface fill:#1E293B,stroke:#475569,color:#F8FAFC;
-
-    class Interface,SQLite,Cache accent;
-    class CLI,TUI,Rich,Search,Sync,Watch,Export,NVD,CVEORG,CISA,EPSS surface;
-```
+| Variable | Default |
+|---|---|
+| `NVD_API_KEY` | unset |
+| `CVELI_DATA_DIR` / `CVELI_DB_PATH` | `~/.local/share/cveli/cveli.db` |
+| `CVELI_CACHE_DIR` | `~/.cache/cveli` |
+| `EXPLOITDB_PATH` | unset (auto-detects `/usr/share/exploitdb`) |
+| `CVELI_FEATURE_EXPLOITDB` / `_DORKS` / `_MSF` | `1` |
+| `CVELI_THEME` | saved preference, else `auto` |
 
 ---
 
-# 📂 Project Structure
+## Privacy
 
-```text
-cveli/
-├── cli/
-│   ├── app.py
-│   ├── branding.py
-│   ├── commands/
-│   └── tui/
-├── core/
-├── sources/
-│   ├── nvd.py
-│   ├── cve_org.py
-│   ├── cisa_kev.py
-│   └── epss.py
-├── services/
-├── storage/
-├── docs/
-└── tests/
-```
-
-## Folder Responsibilities
-
-| Folder      | Responsibility                           |
-| ----------- | ---------------------------------------- |
-| `cli/`      | Typer commands & Textual UI              |
-| `core/`     | Models, ranking, filtering & formatting  |
-| `sources/`  | Official CVE source adapters             |
-| `services/` | Sync, Export & Watchlist orchestration   |
-| `storage/`  | SQLite repositories & cache layer        |
-| `tests/`    | Unit, Integration & TUI regression tests |
+Usernames, domains and dorks stay in memory and are redacted from logs. They are
+stored only when you explicitly save them to a project. The audit log records
+event types and identifiers only (90-day retention); local metrics never leave
+your machine. `cveli privacy purge` deletes all saved research data.
 
 ---
 
-# 📊 CVE Data Model
-
-| Field             | Source        |
-| ----------------- | ------------- |
-| CVE ID            | NVD / CVE.org |
-| Severity          | NVD           |
-| CVSS Score        | NVD           |
-| CVSS Vector       | NVD           |
-| EPSS              | FIRST EPSS    |
-| Vendor            | NVD           |
-| Product           | NVD           |
-| Affected Versions | NVD           |
-| CWE               | NVD           |
-| KEV Status        | CISA KEV      |
-| Published         | NVD           |
-| Modified          | NVD           |
-| References        | NVD + CVE.org |
-
----
-
-# ⚙️ Configuration
-
-Create a `.env` file:
-
-```env
-NVD_API_KEY=your_api_key_here
-
-CVELI_DB_PATH=storage/cveli.db
-CVELI_CACHE_DIR=.cache/cveli
-CVELI_LOG_LEVEL=INFO
-```
-
----
-
-# 🧪 Development
-
-## Run Tests
+## Development
 
 ```bash
-.venv/bin/pytest
+make test        # pytest
+make lint        # ruff
+make typecheck   # mypy on the 2.0 modules
+make cov         # coverage report
+pytest -m live   # opt-in smoke tests against real services
 ```
 
-## Lint
-
-```bash
-.venv/bin/ruff check .
-```
-
-## Live Smoke Test
-
-```bash
-cveli search CVE-2025-32756 --live --format json
-```
-
-## Cached Smoke Test
-
-```bash
-cveli search CVE-2025-32756 --cache --format json
-```
+Docs: [architecture](docs/architecture.md) · [API & JSON contracts](docs/api.md) ·
+[operations](docs/operations.md) · [bug triage](docs/triage.md) ·
+[contributing](docs/contributing.md)
 
 ---
 
-# 🤝 Contributing
+## License
 
-```bash
-# Create a feature branch
-git checkout -b feat/my-feature
-
-# Commit
-git commit -m "feat: add new feature"
-
-# Push
-git push origin feat/my-feature
-```
-
-Open a Pull Request after pushing.
-
----
-
-# 📜 License
-
-**MIT License**
-
-See the `LICENSE` file for details.
-
----
-
-<div align="center">
-
-## 💚 Crafted with Passion by Jeevan Sai
-
-**GitHub:** `@jeevansai-k`
-
-*Real-time Vulnerability Intelligence • Terminal Native • Open Source*
-
-</div>
+MIT — see [LICENSE](LICENSE). Exploit-DB metadata is © OffSec, GPL-2.0, and is
+subject to the [Exploit-DB terms](https://www.exploit-db.com/terms).

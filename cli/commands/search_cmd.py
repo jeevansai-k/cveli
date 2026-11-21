@@ -10,6 +10,7 @@ covers every filter).
 
 from __future__ import annotations
 
+import re
 from datetime import UTC, datetime, timedelta
 
 import typer
@@ -48,6 +49,13 @@ RANGE_DAYS = {
 }
 SORT_CHOICES = ("published", "cvss", "epss", "updated", "id")
 FORMAT_CHOICES = ("table", "json", "markdown", "md", "detail", "plain")
+
+
+CVE_ID_RE = re.compile(r"^CVE-\d{4}-\d{4,7}$", re.IGNORECASE)
+
+
+def is_cve_id(value: str) -> bool:
+    return bool(CVE_ID_RE.match((value or "").strip()))
 
 
 def resolve_search_range(value: str) -> tuple[str, tuple[str, str] | None]:
@@ -312,6 +320,12 @@ def search_command(
         public_exploit_only,
         sort,
     )
+    # An exact CVE ID is a lookup, not a browse: the publication range must not
+    # hide it (regression found during 2.0 end-to-end verification).
+    if is_cve_id(query):
+        query = query.strip().upper()
+        date_range = None
+        range_key = "exact"
     since, until = date_range if date_range else (None, None)
     filters = {
         "query": query,
@@ -410,8 +424,11 @@ def search_command(
             fmt = "plain"
 
     if not results:
-        console.print("[danger]No matching CVE records found.[/danger]")
-        console.print(f"[muted]{source_note}[/muted]")
+        if fmt == "json":
+            print("[]")
+        err = get_err_console() if fmt == "json" else console
+        err.print("[danger]No matching CVE records found.[/danger]")
+        err.print(f"[muted]{source_note}[/muted]")
         return
     if fmt == "json":
         if is_interactive():

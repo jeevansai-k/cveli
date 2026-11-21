@@ -99,12 +99,14 @@ class SearchView(View):
 
     @work(thread=True, exclusive=True, group="cve-search")
     def _search_worker(self, query: str, live: bool, range_key: str, kev: bool) -> None:
-        from cli.commands.search_cmd import resolve_search_range
+        from cli.commands.search_cmd import is_cve_id, resolve_search_range
         from storage.repositories import CVERepository
 
         repo = CVERepository()
         errors: dict[str, str] = {}
         _key, date_range = resolve_search_range(range_key)
+        if is_cve_id(query):
+            query, date_range = query.upper(), None
         since, until = date_range if date_range else (None, None)
         try:
             if live and (query or kev):

@@ -1,144 +1,141 @@
-# CVELI API Reference
+# CVELI 2.0 service contracts and JSON output
 
-## Core Module (`core/`)
+CVELI is local software, so its "API" is a set of typed Python services. Every
+service is mirrored by a CLI command whose `--format json` / `--json` output is a
+stable contract for scripts. Errors are typed (`utils/errors.py`) and map to exit
+codes.
 
-### Search Functions
+| Exit code | Meaning |
+|---|---|
+| 0 | success |
+| 1 | nothing found / operation failed (e.g. refresh error) |
+| 2 | invalid input or blocked by policy (`ValidationError`, `PolicyError`) |
+| 3 | feature disabled by a `CVELI_FEATURE_*` flag |
+| 4 | authorization/confirmation not given or rate limited |
 
-| Function | Description | Input/Output |
-|----------|-------------|--------------|
-| `parse_query(query)` | Parse raw search string into internal format | str → dict |
-| `execute_search(search_data, database)` | Execute parsed search against database | dict, DB → list of CVEs |
-| `fuzzy_match(text, query_part)` | Calculate fuzzy match similarity score | str, str → float (0-1) |
-
-### Filter Functions
-
-| Class/Function | Description | Input/Output |
-|----------------|-------------|--------------|
-| `SeverityFilter(level, exclude_severities)` | Filter by severity level | dict → bool |
-| `CVSSRangeFilter(min_score, max_score)` | Filter by CVSS score range | dict → bool |
-| `DateFilter(published_since, published_before, updated_since, updated_before)` | Filter by date criteria | dict → bool |
-| `apply_filters(results, filters)` | Apply all filters to result set | list, dict → filtered list |
-
-### Ranking Functions
-
-| Class/Function | Description | Input/Output |
-|----------------|-------------|--------------|
-| `EPSSRanker()` | Rank by exploitation probability (EPSS) | list → sorted list |
-| `ExploitRanker()` | Prioritize CVEs with known exploits | list → sorted list |
-| `CVSSRanker()` | Sort by CVSS severity score | list → sorted list |
-| `rank_results(results, sort_by)` | Main ranking function | list, str → sorted list |
-
-### Validation Functions
-
-| Function | Description | Input/Output |
-|----------|-------------|--------------|
-| `validate_cve_id(cve_id)` | Validate CVE identifier format | str → bool or ValidationError |
-| `validate_date(date_str)` | Validate date string format | str → bool or ValidationError |
-| `validate_severity(severity)` | Validate severity level | str → bool or ValidationError |
-| `validate_epss_score(value, allow_percentage=True)` | Validate EPSS score range | float → bool or ValidationError |
-
-## Storage Module (`storage/`)
-
-| Function | Description | Input/Output |
-|----------|-------------|--------------|
-| `init_database(db_path=None)` | Initialize SQLite database schema | None → True |
-| `get_engine()` | Return SQLAlchemy engine instance | None → Engine |
-| `create_session()` | Create new DB session (context manager) | None → Session |
-| `get_connection()` | Get persistent connection | None → Connection |
-
-## Source Adapters (`sources/`)
-
-All adapters must implement:
+## CVE search — `services.sync.SyncService`, `storage.repositories.CVERepository`
 
 ```python
-class BaseAdapter(ABC):
-    def __init__(self, api_key=None, timeout=30.0): ...
-    
-    @abstractmethod
-    def fetch(self, query_params=None) -> str | bytes:
-        """Fetch raw data from source."""
-        raise NotImplementedError
-    
-    @abstractmethod
-    def parse(self, raw_data) -> List[Dict]:
-        """Parse raw data into CVE records."""
-        raise NotImplementedError
-    
-    @abstractmethod
-    def normalize(self, record) -> Dict:
-        """Normalize to canonical format."""
-        raise NotImplementedError
+CVERepository().search(query="openssl", severity="High", kev_only=True,
+                       public_exploit_only=False, published_since="2025-01-01",
+                       sort_by="cvss", limit=100) -> list[CVEModel]
+SyncService().sync_sources(sources=["nvd", "cisa_kev", "epss"], query="openssl",
+                           limit=500, date_range=(start, end), force=False)
+    -> {"total_synced": int, "unique_records": int, "sources": {...}, "errors": {...}}
 ```
 
-## CLI Commands (`cli/commands/`)
-
-### Typer Subcommands
-
-| Command | Description | Usage Example |
-|---------|-------------|---------------|
-| `sync` | Synchronize data from sources | `cveli sync --query openssl` |
-| `search` | Search local database for CVEs | `cveli search python` |
-| `export` | Export results to file formats | `cveli export --format json` |
-
-## Data Model (Canonical CVE Format)
-
-Every source normalizes into this schema:
+`cveli search openssl --cache -f json` prints a list of `CVEModel` objects:
 
 ```json
-{
-  "id": "",              // Unique CVE identifier (e.g., CVE-2024-12345)
-  "summary": "",         // Brief description of the vulnerability  
-  "severity": "",        // CVSS severity level
-  "cvss_score": 0.0,     // Numeric CVSS score (0.0-10.0 or decimal)
-  "vector": "",          // CVSS vector string representation
-  "published": "YYYY-MM-DD",  // Publish date
-  "updated": "YYYY-MM-DD",    // Update date
-  "affected_products": [], // List of affected software products
-  "references": [],        // External references/URLs to related info
-  "exploit_available": false,     // Boolean indicating known exploits
-  "epss": 0.0,             // Exploitation probability score (0-1)
-  "cwe_id": "",            // CWE identifier if applicable
-  "tags": []               // Tags for categorization
-}
+[{"id": "CVE-2024-1234", "summary": "…", "severity": "High", "cvss": 8.1,
+  "vector": "CVSS:3.1/…", "published": "2024-01-02", "updated": "2024-02-03",
+  "kev": true, "kev_date": "2024-03-01", "public_exploit_count": 2,
+  "exploit_available": true, "epss": 0.42, "epss_percentile": 0.97,
+  "vendor": "openssl", "cwe": {"id": 787, "name": "CWE-787"},
+  "affected_products": [{"name": "openssl/openssl", "version": "3.0.0"}],
+  "references": ["https://…"], "reference_details": [{"url": "https://…",
+  "source": "…", "tags": ["Patch"]}], "tags": ["cisa_kev"],
+  "sources": ["NVD", "CISA KEV", "FIRST EPSS"], "fetched_at": "2026-11-21"}]
 ```
 
-## Example Usage
+## Exploit-DB — `services.exploitdb.ExploitDBService`
 
-### Basic Search
 ```python
-from core.search import parse_query, execute_search
-from storage.database import init_database, create_session
-
-# Initialize database
-init_database()
-
-with create_session() as session:
-    # Parse user query
-    search_data = parse_query("python vulnerable")
-    
-    # Execute search against database
-    results = execute_search(search_data, session)
+service.refresh(force=False, from_path=None) -> RefreshResult
+    # status: updated | not_modified | fresh | error; rows; origin; duration_ms; message
+service.search(ExploitQuery(text="", cve_id=None, edb_id=None, vendor=None,
+               product=None, version=None, platform=None, type=None, author=None,
+               since=None, until=None, verified=None, has_cve=None, sort="date",
+               descending=True, page=1, page_size=25)) -> Page[ExploitModel]
+service.get(edb_id) -> ExploitModel | None
+service.for_cve(cve_id) -> list[ExploitModel]
+service.status() -> dict
 ```
 
-### Apply Filters
+`cveli exploits search --cve CVE-2021-44228 -f json`:
+
+```json
+{"query": {"cve_id": "CVE-2021-44228", "page": 1, "page_size": 25},
+ "total": 3, "page": 1, "pages": 1,
+ "source_status": {"exploitdb": {"last_success": "2026-11-21T13:38:07Z",
+                                 "stale": false, "rows": 46710}},
+ "results": [{"edb_id": 50592, "cve_ids": ["CVE-2021-44228"], "aliases": [],
+   "title": "Apache Log4j 2 - Remote Code Execution (RCE)", "description": null,
+   "author": "…", "date_published": "2021-12-14", "platform": "java",
+   "type": "remote", "port": null, "verified": false,
+   "source_url": "https://www.exploit-db.com/exploits/50592",
+   "advisory_url": "", "file_url": "https://gitlab.com/…/50592.py",
+   "tags": [], "license": "GPL-2.0 (Exploit-DB repository metadata)",
+   "affected_product": "Apache Log4j 2", "affected_versions": [],
+   "parsed_heuristically": true,
+   "safety_labels": ["Research only", "Requires authorized environment",
+                     "Proof-of-concept reference", "Unverified"]}],
+ "notice": "Public exploit references do not imply safe, legal, or authorized use. …",
+ "attribution": "Exploit metadata from Exploit-DB (OffSec) …"}
+```
+
+## Dork Builder — `services.dorks.DorkBuilder`
+
 ```python
-from core.filters import apply_filters, SeverityFilter, DateFilter
-
-# Create filter objects
-severity_filter = SeverityFilter(level="CRITICAL")
-date_filter = DateFilter(published_since="2024-01-01")
-
-# Apply filters to results
-filtered_results = apply_filters(
-    results,
-    {"severity": {"level": "CRITICAL"}, "date": {"published_since": "2024-01-01"}},
-)
+DorkBuilder().build(DorkInput(username="alice", target_domain="example.com",
+    category="profiles", exact_match=True, exclude_false_positives=False,
+    filetype=None, include_phrases=[], exclude_phrases=[], custom_query=""))
+    -> list[DorkQuery]              # raises ValidationError / PolicyError
+DorkBuilder().open(dork, attested=True) -> str  # AuthorizationRequiredError, RateLimitError
 ```
 
-### Rank Results by EPSS
+`cveli dork build -u alice -s example.com -f json` (first element):
+
+```json
+{"id": "public_profile_domain", "label": "Public profile mentions",
+ "category": "profiles", "target_domain": "example.com", "username": "alice",
+ "query": "site:example.com \"alice\"",
+ "operators": [
+   {"op": "site:", "value": "example.com",
+    "explanation": "Restricts results to example.com and its subdomains."},
+   {"op": "\"\"", "value": "\"alice\"", "explanation": "Exact phrase match for \"alice\"."}],
+ "explanation": "Finds pages on example.com that mention the username.",
+ "risk_level": "low", "requires_authorization": true,
+ "warnings": ["Only research people and organisations you are authorized to …"],
+ "google_url": "https://www.google.com/search?q=site%3Aexample.com+%22alice%22"}
+```
+
+## Research templates — `services.msf_template.MsfTemplateService`
+
 ```python
-from core.ranking import rank_results
-
-# Get results sorted by exploitation probability
-ranked = rank_results(results, "epss")  # Most exploitable first
+service.generate(cve_id=None, edb_id=None, module_type="auto",
+                 author="CVELI Research", live=True) -> TemplateBundle
+service.export(bundle, out_dir, formats=("rb", "md", "json"), confirmed=False,
+               allow_outside=False, project=None) -> list[str]
 ```
+
+`cveli msf generate --cve CVE-2021-44228 --out reports --confirm-research -f json`:
+
+```json
+{"module_type": "exploit", "module_class": "Msf::Exploit::Remote",
+ "files": ["reports/cveli_research_cve_2021_44228.rb",
+           "reports/cveli_research_cve_2021_44228.md",
+           "reports/cveli_research_cve_2021_44228.json"],
+ "preflight": ["Written authorization from the system owner …", "…"]}
+```
+
+The `.json` file follows schema `cveli.msf-template/1` (`record_id`, `module_type`,
+`module_class`, `cve_id`, `edb_ids`, `affected_product`, `affected_versions`,
+`disclosure_date`, `references`, `preflight_checklist`, `safety`).
+
+## Projects, settings, jobs, diagnostics
+
+| Service | CLI |
+|---|---|
+| `ProjectService.create/list/show/add/save_dork/delete/purge_all` | `cveli project …`, `cveli dork save`, `cveli privacy purge` |
+| `SettingsRepository.get/set` | `cveli settings theme|motion|show` |
+| `services.jobs.run_job(name, force)` / `run_due_jobs()` | `cveli jobs run <name|due>` |
+| `AuditService.record/recent` | (local only) |
+| `cli.commands.doctor_cmd.collect()` | `cveli doctor --json` |
+
+## Core library helpers
+
+`core.search.parse_query / fuzzy_match / execute_search`, `core.filters.apply_filters`,
+`core.ranking.rank_results` and `core.validator.validate_*` remain available as a
+small library API; `fuzzy_match` powers Exploit-DB product matching and the
+validators guard CLI input.

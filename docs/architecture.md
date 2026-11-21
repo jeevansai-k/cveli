@@ -1,154 +1,95 @@
-# CVELI Architecture
+# CVELI 2.0 architecture
 
-## Overview
-
-**CVELI** is a high-performance CLI/TUI tool for searching, browsing, triaging, and managing Common Vulnerabilities and Exposures (CVE) data. It provides an extensible, modular architecture with clean separation of concerns.
-
-## Project Structure
-
-```
-cveli/
-├── cli/                   # Presentation layer (menus, TUI widgets)
-│   ├── app.py             # Main CLI entry point using typer
-│   ├── commands/          # Command-line subcommands (Typer)
-│   └── tui/               # Textual terminal user interface
-├── core/                  # Business logic layer
-│   ├── models.py          # Data model definitions (Pydantic)
-│   ├── search.py          # Search query processing and execution
-│   ├── filters.py         # Filter criteria handling
-│   ├── ranking.py         # Result sorting and ranking algorithms
-│   └── validator.py       # Input validation utilities
-├── sources/               # Data source adapters
-│   ├── base.py            # Base adapter interface (ABC)
-│   ├── nvd.py             # NIST NVD adapter implementation
-│   ├── cve_org.py         # MITRE CVE.org API adapter
-│   └── vendor.py          # Vendor advisory parser adapter
-├── services/              # High-level orchestration
-│   ├── sync.py            # Database synchronization
-│   ├── export.py          # Multi-format export service
-│   └── watchlist.py       # Watchlist management service
-├── storage/               # Persistence layer
-│   ├── database.py        # SQLite connection management
-│   ├── repositories.py    # CRUD operations on data types
-│   └── migrations.py      # Database schema migrations
-├── config/                # Configuration settings
-│   ├── settings.py        # Environment variable handling
-│   ├── defaults.py        # Default configuration values
-│   └── theme.py           # UI theming options
-├── utils/                 # Reusable utilities
-│   ├── logger.py          # Loguru logging configuration
-│   ├── errors.py          # Custom exception classes
-│   ├── helpers.py         # General-purpose utility functions
-│   └── time.py            # Date/time formatting and calculations
-├── assets/                # Static resources
-│   ├── text/              # Textual CSS stylesheets
-│   └── themes/            # Color schemes for different themes
-├── tests/                 # Unit and integration test files
-└── README.md             # Project documentation
-```
-
-## High-Level Architecture Diagram
+CVELI is a local, single-user terminal application: a Typer + Rich CLI and a
+Textual TUI on top of shared services, a SQLite database and a disk cache. There is
+no server and no account system; "authorization" means an explicit attestation by
+the person running the tool, recorded in the local audit log.
 
 ```mermaid
 graph TD
-    User[User] --> CLI[CLI/TUI Interface]
-    
-    subgraph "Presentation Layer"
-        CLI --> Dashboard[Dashboard View]
-        CLI --> Search[Search Interface]
-        CLI --> Details[CVE Detail Viewer]
+    User([User / script]) --> CLI[Typer CLI<br/>cli/commands]
+    User --> TUI[Textual shell<br/>cli/tui/app.py]
+    CLI --> Services
+    TUI --> Services
+    subgraph Services[services/]
+        Sync[SyncService]
+        EDB[ExploitDBService]
+        Dorks[DorkBuilder]
+        MSF[MsfTemplateService]
+        Proj[ProjectService]
+        Jobs[jobs]
+        Audit[AuditService · metrics]
     end
-    
-    subgraph "Application Services"
-        Dashboard --> SyncService[Sync Service]
-        Search --> SearchEngine[Search Engine]
-        Details --> Formatter[Formatter Module]
+    subgraph Core[core/ — pure logic]
+        Models[models] --- Merge[merge] --- Policy[dork_policy] --- Safety[safety] --- Render[msf renderers]
     end
-    
-    subgraph "Data Sources"
-        NVD[NIST NVD API]
-        CVE_org[Mitre CVE.org API]
-        Vendor[Vendor Advisories]
+    Services --> Core
+    Sync --> Sources
+    EDB --> Sources
+    subgraph Sources[sources/ via utils/http.py]
+        NVD[NVD 2.0] --- CVEORG[CVE.org] --- KEV[CISA KEV] --- EPSS[FIRST EPSS] --- EXDB[Exploit-DB CSV]
     end
-    
-    SyncService --> NVD
-    SyncService --> CVE_org
-    SyncService --> Vendor
-    
-    SearchEngine <--> LocalDB[(SQLite Cache)]
-    
-    style Presentation Layer fill:#e1f5fe,stroke:#01579b
-    style Application Services fill:#fff3e0,stroke:#e65100
+    Services --> Storage[(SQLite<br/>storage/)]
+    Services --> Cache[(diskcache)]
 ```
 
-## Module Responsibilities
+## Packages
 
-### Core (Business Logic)
+| Package | Responsibility | Key modules |
+|---|---|---|
+| `config/` | Typed settings from env/`.env`, version, defaults | `settings.py`, `version.py`, `defaults.py` |
+| `core/` | Pure logic, no I/O | `models.py`, `merge.py`, `formatter.py`, `text.py`, `safety.py`, `dork_policy.py`, `dork_templates.py`, `msf/` |
+| `sources/` | One adapter per upstream (`fetch` → `parse` → `normalize`) | `nvd.py`, `cve_org.py`, `vendor.py` (KEV), `epss.py`, `exploitdb.py` |
+| `services/` | Orchestration, guardrails, auditing | `sync.py`, `exploitdb.py`, `dorks.py`, `msf_template.py`, `projects.py`, `jobs.py`, `audit.py`, `metrics.py`, `export.py`, `watchlist.py` |
+| `storage/` | ORM models, migrations, repositories, cache | `database.py`, `migrations.py`, `repositories.py`, `exploit_repository.py`, `research_repositories.py`, `system_repositories.py`, `cache.py` |
+| `cli/commands/` | One Typer module per command group | `search_cmd.py`, `exploits_cmd.py`, `dork_cmd.py`, `msf_cmd.py`, … |
+| `cli/tui/` | Shell, views, widgets, theme | `app.py`, `views/*`, `widgets.py`, `theme.py`, `cveli.tcss`, `commands.py` |
+| `utils/` | HTTP client, logging with redaction, errors, colour maths | `http.py`, `logger.py`, `errors.py`, `color.py` |
 
-- **search.py**: Parses raw search queries and executes against indexed data using fuzzy matching
-- **filters.py**: Implements filter criteria for severity levels, CVSS scores, date ranges
-- **ranking.py**: Ranks results by EPSS score, exploit availability, or CVSS severity
-- **validator.py**: Validates all user inputs to ensure data integrity
+## Data model (SQLite, schema version 4)
 
-### Sources (Data Adapters)
+| Table | Purpose |
+|---|---|
+| `cves` | Merged CVE records (CVSS, EPSS, `kev`, `public_exploit_count`, references, products, first-seen) |
+| `exploits`, `exploit_cves`, `exploits_fts` | Exploit-DB metadata, CVE cross-reference, FTS5 index |
+| `watchlists` | Vendor / product / CWE targets with last-check time |
+| `projects`, `project_items`, `dork_saved` | Research workspaces — the only place user research inputs are stored |
+| `generated_reports`, `saved_searches` | Template exports and saved queries |
+| `user_settings` | Preferences (theme, motion, notice acknowledgements, open-rate timestamps) |
+| `audit_log` | Event type + identifiers only (no free-text inputs), 90-day retention |
+| `source_state` | Per-source last success/attempt, ETag, status, error, rows |
+| `metrics` | Local counters/timings, 30-day retention |
+| `schema_version` | Applied migrations |
 
-Each adapter must implement three methods:
-1. `fetch()` - Retrieves raw data from external source
-2. `parse()` - Extracts CVE records from raw data
-3. `normalize()` - Converts to canonical schema format
+Migrations live in `storage/migrations.py`; each is idempotent and a timestamped
+backup is written before an existing database is upgraded.
 
-All sources return identical normalized output regardless of source-specific variations.
+## Merging and freshness
 
-### Storage (Persistence)
+* `core/merge.py` merges partial records from several sources with precedence
+  NVD > CVE.org > others; a field is only replaced by a present value from an
+  equal-or-higher-ranked source, so partial KEV/EPSS rows never erase data.
+* CISA KEV and Exploit-DB are refreshed at most once per TTL (`source_state`);
+  failures keep the last good data and surface the error in `doctor`, the TUI status
+  bar and JSON envelopes.
+* `utils/http.py` applies timeouts, exponential backoff with jitter, `Retry-After`,
+  and per-host token buckets (NVD 5/30 s, 50/30 s with a key).
 
-- Handles SQLite database management with connection pooling
-- Manages migrations for schema changes
-- Implements disk-based caching for offline access
+## Guardrails
 
-## Data Model
+| Concern | Where |
+|---|---|
+| Feed text → terminal injection | `core/text.sanitize_terminal_text`, Rich `Text` (never markup) |
+| Dork safety | `core/dork_policy.py` (input validation, normalised blocklist, risk levels) |
+| Browser opens | `services/dorks.DorkBuilder.open` (attestation, persistent rate limit, audit) |
+| Template safety | `core/msf/escape.py`, `services/msf_template.assert_safe`, export confirmation |
+| Exploit-DB | metadata CSV only; `file_url` is a link that is never fetched |
+| Privacy | `utils/logger` redaction; inputs persisted only via `ProjectService.save_dork` |
+| Exports | `services/export.validate_output_path` (system dirs, symlinks, safe roots), CSV formula guard |
 
-Every CVE record follows a standardized 14-field schema:
+## Theme
 
-```json
-{
-  "id": "",              // Unique CVE identifier (e.g., CVE-2024-12345)
-  "summary": "",         // Brief description of the vulnerability
-  "severity": "",        // CVSS severity level (CRITICAL, HIGH, MEDIUM, LOW)
-  "cvss_score": 0.0,     // Numeric CVSS score (0.0-10.0 or decimal)
-  "vector": "",          // CVSS vector string representation
-  "published": "YYYY-MM-DD",  // Publish date
-  "updated": "YYYY-MM-DD",    // Update date
-  "affected_products": [], // List of affected software products
-  "references": [],        // External references/URLs to related info
-  "exploit_available": false,     // Boolean indicating known exploits
-  "epss": 0.0,             // Exploitation probability score (0-1)
-  "cwe_id": "",            // CWE identifier if applicable
-  "tags": []               // Tags for categorization
-}
-```
-
-## Search Algorithm
-
-The search system uses multiple matching strategies:
-
-1. **Exact Matching**: First priority - exact CVE ID or summary matches get score of 1.0
-2. **Fuzzy Matching**: Uses rapidfuzz library to find similar strings with configurable threshold (default 60%)
-3. **Boolean Operators**: Support for AND, OR, NOT in queries
-4. **Relevance Scoring**: Results ranked by match quality before filtering
-
-Example query: `python AND vulnerable OR python` is parsed into multiple keywords with appropriate operators.
-
-## Security Considerations
-
-- All user inputs validated before processing (CVE IDs, dates, severity levels)
-- SQL injection prevention via SQLAlchemy parameterized queries
-- Path traversal protection in export operations
-- Rate limiting prevents API abuse on external sources
-- No secrets stored in code - all configuration from `.env` file
-
-## Contributing Guidelines
-
-1. Every module should document: Purpose, Inputs, Outputs, Responsibilities
-2. Keep files under 300 lines where possible for readability by LLMs and humans
-3. Use explicit naming over clever abbreviations
-4. Maintain documentation in `docs/` directory
+`cli/tui/theme.py` is the single source of colour: two palettes (`opus-dark`,
+`opus-light`) become Textual themes and a Rich theme for CLI output. `cveli.tcss`
+uses only `$tokens`; tests enforce AA contrast and the absence of colour literals
+elsewhere.

@@ -25,3 +25,4 @@ Rule: reproduce → write a failing regression test → fix → test green.
 | B15 | P2 | Watchlist `check` re-reported the same matches forever (no "new since last check") | run `watchlist check` twice | `test_bugfixes.py::test_watchlist_reports_new_since_last_check` | Fixed |
 | B16 | P2 | Search cache stored results only when `total_synced` > 0 and cache key ignored `--kev/--public-exploit` | — | `test_cli.py::test_search_cache_key_includes_range` (+ flags) | Fixed |
 | B17 | P3 | `datetime.now` (local) vs UTC mixed in DB timestamps; sqlite datetime adapter deprecation | — | covered by migration tests | Fixed |
+| B18 | P1 | Exact CVE-ID search hidden by the default 1-year range after the B5 fix (found in end-to-end verification); empty `--format json` printed prose instead of `[]` | `cveli search CVE-2021-44228` | `test_bugfixes.py::test_exact_cve_id_ignores_default_range` | Fixed |

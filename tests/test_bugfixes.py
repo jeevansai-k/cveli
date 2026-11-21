@@ -401,3 +401,12 @@ def test_watchlist_cwe_normalised():
     assert added["target_value"] == "CWE-79"
     with pytest.raises(ValidationError):
         WatchlistService().add_target("cwe", "XSS")
+
+
+def test_exact_cve_id_ignores_default_range():
+    """Regression: `cveli search CVE-2021-44228` returned nothing (1y default)."""
+    CVERepository().save(nvd_model("CVE-2021-44228", published="2021-12-10"))
+    result = runner.invoke(app, ["search", "cve-2021-44228", "--cache", "-f", "json"])
+    assert json.loads(result.stdout)[0]["id"] == "CVE-2021-44228"
+    browse = runner.invoke(app, ["search", "acme", "--cache", "-f", "json"])
+    assert json.loads(browse.stdout) == []
