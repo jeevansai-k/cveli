@@ -223,7 +223,9 @@ def evaluate(query: str, base_risk: str = LOW) -> PolicyDecision:
             return PolicyDecision(False, HIGH, reason, rule)
     risk = base_risk
     if risk == LOW and re.search(
-        r"\binurl:|intitle:\s*\"?index of|site:\s*\*\.", normalized
+        r"intitle:\s*\"?index of|site:\s*\*\.|"
+        r"inurl:\s*\"?(login|signin|sign-in|auth|portal|sso)",
+        normalized,
     ):
         risk = MEDIUM
     return PolicyDecision(True, risk)
