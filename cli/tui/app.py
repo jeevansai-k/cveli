@@ -174,6 +174,23 @@ class CveliApp(App):
         nav.highlighted = 0
         nav.focus()
 
+    # --- responsive navigation --------------------------------------------
+    def on_resize(self, event) -> None:
+        self._compact_nav(event.size.width < 80)
+
+    def _compact_nav(self, compact: bool) -> None:
+        if getattr(self, "_nav_compact", None) == compact:
+            return
+        self._nav_compact = compact
+        nav = self.query_one("#nav", OptionList)
+        for index, view in enumerate(self.views, start=1):
+            prompt = (
+                f"{index} {view.icon}"
+                if compact
+                else f"{index}  {view.icon} {view.label}"
+            )
+            nav.replace_option_prompt(view.view_id, prompt)
+
     # --- navigation -------------------------------------------------------
     def view_ids(self) -> list[str]:
         return [view.view_id for view in self.views]

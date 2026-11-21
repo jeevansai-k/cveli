@@ -126,13 +126,22 @@ Screen.-narrow #command_bar #app_title {
 .card-row {
     height: auto;
 }
+#stat_row {
+    layout: grid;
+    grid-size: 6;
+    grid-gutter: 0 1;
+    height: auto;
+}
+Screen.-narrow #stat_row,
+Screen.-medium #stat_row {
+    grid-size: 3;
+}
 .stat-card {
     width: 1fr;
     height: 5;
     background: $surface;
     border: round $border;
     padding: 0 1;
-    margin-right: 1;
     content-align: center middle;
 }
 
@@ -218,8 +227,32 @@ Button:focus {
 }
 .field {
     width: 1fr;
+    min-width: 14;
     height: auto;
     margin-right: 1;
+}
+.form-row > Select {
+    width: 28;
+    margin-right: 1;
+}
+.form-row > Checkbox {
+    width: auto;
+    margin-right: 1;
+}
+.form-row > Static {
+    width: 1fr;
+    height: auto;
+    padding: 1 0 0 1;
+}
+/* result / state slots size to their content */
+#cve_state, #edb_state, #dork_preview, #tpl_result {
+    height: auto;
+}
+#tpl_screen_body > TemplatePreview, TemplatePreview {
+    height: auto;
+}
+TabbedContent {
+    height: auto;
 }
 
 /* ---------- Tables ------------------------------------------------------ */
