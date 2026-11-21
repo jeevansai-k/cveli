@@ -16,6 +16,7 @@ from core.merge import merge_models
 from core.models import CVEModel
 from storage.database import (
     CVERecord,
+    ExploitCVERecord,
     WatchlistItemRecord,
     get_session,
     map_model_to_record,
@@ -70,11 +71,24 @@ def _parse_bound(value: str | None) -> datetime | None:
 
 
 class CVERepository:
+    @staticmethod
+    def _exploit_count(session, cve_id: str) -> int:
+        return int(
+            session.query(func.count(ExploitCVERecord.edb_id))
+            .filter(ExploitCVERecord.cve_id == cve_id)
+            .scalar()
+            or 0
+        )
+
     def _upsert(self, session, cve: CVEModel) -> CVERecord:
         record = session.get(CVERecord, cve.id)
+        count = self._exploit_count(session, cve.id)
         if record is None:
             fresh = map_model_to_record(cve)
             fresh.first_seen_at = utcnow()
+            if count:
+                fresh.public_exploit_count = count
+                fresh.exploit_available = True
             session.add(fresh)
             return fresh
         merged = merge_models(map_record_to_model(record), cve)
@@ -84,6 +98,9 @@ class CVERepository:
         fresh.fetched_at = utcnow()
         for field in _COPY_FIELDS:
             setattr(record, field, getattr(fresh, field))
+        if count:
+            record.public_exploit_count = count
+            record.exploit_available = True
         return record
 
     def save(self, cve: CVEModel) -> CVEModel:

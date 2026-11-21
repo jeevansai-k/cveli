@@ -72,6 +72,9 @@ exclude = [".venv", "test", ".git", "__pycache__"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "C4", "UP"]
 
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 warn_return_any = true
