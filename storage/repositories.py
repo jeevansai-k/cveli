@@ -10,7 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import and_, desc, func, or_
+from sqlalchemy import ColumnElement, and_, func, or_
+from sqlalchemy.orm import Session
 
 from core.merge import merge_models
 from core.models import CVEModel
@@ -80,7 +81,7 @@ class CVERepository:
             or 0
         )
 
-    def _upsert(self, session, cve: CVEModel) -> CVERecord:
+    def _upsert(self, session: Session, cve: CVEModel) -> CVERecord:
         record = session.get(CVERecord, cve.id)
         count = self._exploit_count(session, cve.id)
         if record is None:
@@ -202,8 +203,10 @@ class CVERepository:
                 since = _parse_bound(published_since)
                 until = _parse_bound(published_until)
                 if since or until:
-                    pub_conditions = [CVERecord.published_date.isnot(None)]
-                    kev_conditions = [
+                    pub_conditions: list[ColumnElement[bool]] = [
+                        CVERecord.published_date.isnot(None)
+                    ]
+                    kev_conditions: list[ColumnElement[bool]] = [
                         CVERecord.published_date.is_(None),
                         CVERecord.kev_date.isnot(None),
                     ]
@@ -225,8 +228,8 @@ class CVERepository:
                         )
                     )
                 sort_column = SORT_COLUMNS.get(sort_by, CVERecord.published_date)
-                ordering = desc(sort_column) if reverse else sort_column
-                rows = rows.order_by(ordering.nulls_last(), desc(CVERecord.id))
+                ordering = sort_column.desc() if reverse else sort_column.asc()
+                rows = rows.order_by(ordering.nulls_last(), CVERecord.id.desc())
                 return [
                     map_record_to_model(row)
                     for row in rows.offset(offset).limit(limit).all()
@@ -257,7 +260,7 @@ class CVERepository:
 
     def all_ids(self, limit: int | None = None) -> list[str]:
         with get_session() as session:
-            query = session.query(CVERecord.id).order_by(desc(CVERecord.fetched_at))
+            query = session.query(CVERecord.id).order_by(CVERecord.fetched_at.desc())
             if limit:
                 query = query.limit(limit)
             return [row[0] for row in query.all()]

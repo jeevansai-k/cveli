@@ -142,7 +142,8 @@ class HttpClient:
         if retry_after is not None:
             return min(retry_after, MAX_BACKOFF_SECONDS)
         base = self.backoff * (2**attempt)
-        return min(base + random.uniform(0, self.backoff), MAX_BACKOFF_SECONDS)
+        jitter = random.uniform(0, self.backoff)  # noqa: S311 - not security sensitive
+        return float(min(base + jitter, MAX_BACKOFF_SECONDS))
 
     def get(
         self,

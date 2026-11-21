@@ -44,7 +44,7 @@ class CVEOrgAdapter(BaseAdapter):
             raise NetworkError(endpoint="CVE.org", message=f"invalid CVE ID {cve_id!r}")
         return self.http.get(f"{CVE_ORG_API_URL}/{cve_id}").text
 
-    def parse(self, raw_data: str) -> list[dict[str, Any]]:
+    def parse(self, raw_data: str | bytes) -> list[dict[str, Any]]:
         """Parse raw CVE.org JSON v5 format."""
         try:
             data = json.loads(raw_data)

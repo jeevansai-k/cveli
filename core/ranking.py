@@ -143,6 +143,7 @@ def rank_results(
 
     sort_key = sort_by.lower().strip()
 
+    ranker: BaseRanker
     if sort_key in ("epss", "exploit_probability"):
         ranker = EPSSRanker()
     elif sort_key in ("exploit", "has_exploit", "exploit_available"):

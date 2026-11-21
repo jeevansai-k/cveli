@@ -19,7 +19,6 @@ from pathlib import Path
 
 from sqlalchemy import (
     Boolean,
-    Column,
     DateTime,
     Float,
     Integer,
@@ -28,11 +27,13 @@ from sqlalchemy import (
     create_engine,
     event,
 )
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 from core.models import CWEID, CVEModel, Reference
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 def _uuid() -> str:
@@ -46,178 +47,261 @@ def utcnow() -> datetime:
 class CVERecord(Base):
     __tablename__ = "cves"
 
-    id = Column(String(64), primary_key=True)
-    summary = Column(Text, nullable=False, default="")
-    severity = Column(String(20), index=True, nullable=True)
-    cvss_score = Column(Float, index=True, nullable=True)
-    vector = Column(String(128), nullable=True)
-    published_date = Column(DateTime, index=True, nullable=True)
-    updated_date = Column(DateTime, index=True, nullable=True)
-    kev_date = Column(DateTime, index=True, nullable=True)
-    exploit_available = Column(Boolean, default=False, index=True)
-    kev = Column(Boolean, default=False, index=True)
-    public_exploit_count = Column(Integer, default=0, index=True)
-    epss_score = Column(Float, index=True, nullable=True)
-    epss_percentile = Column(Float, index=True, nullable=True)
-    vendor = Column(String(128), index=True, nullable=True)
-    cwe_id = Column(String(32), index=True, nullable=True)
-    cwe_name = Column(String(256), nullable=True)
-    tags_json = Column(Text, default="[]")
-    references_json = Column(Text, default="[]")
-    reference_details_json = Column(Text, default="[]")
-    affected_products_json = Column(Text, default="[]")
-    sources_json = Column(Text, default="[]")
-    fetched_at = Column(DateTime, index=True, nullable=True)
-    first_seen_at = Column(DateTime, index=True, nullable=True)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    severity: Mapped[str | None] = mapped_column(String(20), index=True, nullable=True)
+    cvss_score: Mapped[float | None] = mapped_column(Float, index=True, nullable=True)
+    vector: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    published_date: Mapped[datetime | None] = mapped_column(
+        DateTime, index=True, nullable=True
+    )
+    updated_date: Mapped[datetime | None] = mapped_column(
+        DateTime, index=True, nullable=True
+    )
+    kev_date: Mapped[datetime | None] = mapped_column(
+        DateTime, index=True, nullable=True
+    )
+    exploit_available: Mapped[bool | None] = mapped_column(
+        Boolean, default=False, index=True, nullable=True
+    )
+    kev: Mapped[bool | None] = mapped_column(
+        Boolean, default=False, index=True, nullable=True
+    )
+    public_exploit_count: Mapped[int | None] = mapped_column(
+        Integer, default=0, index=True, nullable=True
+    )
+    epss_score: Mapped[float | None] = mapped_column(Float, index=True, nullable=True)
+    epss_percentile: Mapped[float | None] = mapped_column(
+        Float, index=True, nullable=True
+    )
+    vendor: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
+    cwe_id: Mapped[str | None] = mapped_column(String(32), index=True, nullable=True)
+    cwe_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    tags_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    references_json: Mapped[str | None] = mapped_column(
+        Text, default="[]", nullable=True
+    )
+    reference_details_json: Mapped[str | None] = mapped_column(
+        Text, default="[]", nullable=True
+    )
+    affected_products_json: Mapped[str | None] = mapped_column(
+        Text, default="[]", nullable=True
+    )
+    sources_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    fetched_at: Mapped[datetime | None] = mapped_column(
+        DateTime, index=True, nullable=True
+    )
+    first_seen_at: Mapped[datetime | None] = mapped_column(
+        DateTime, index=True, nullable=True
+    )
 
 
 class WatchlistItemRecord(Base):
     __tablename__ = "watchlists"
 
-    id = Column(String(64), primary_key=True, default=_uuid)
-    target_type = Column(String(32), index=True, nullable=False)
-    target_value = Column(String(256), index=True, nullable=False)
-    created_at = Column(DateTime, default=utcnow)
-    notes = Column(Text, default="")
-    last_checked_at = Column(DateTime, nullable=True)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    target_type: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    target_value: Mapped[str] = mapped_column(String(256), index=True, nullable=False)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, default="", nullable=True)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
 
 class ExploitRecord(Base):
     __tablename__ = "exploits"
 
-    edb_id = Column(Integer, primary_key=True, autoincrement=False)
-    title = Column(Text, nullable=False, default="")
-    description = Column(Text, nullable=True)
-    author = Column(String(256), index=True, default="")
-    platform = Column(String(64), index=True, default="")
-    type = Column(String(32), index=True, default="")
-    port = Column(Integer, nullable=True)
-    date_published = Column(String(10), index=True, default="")
-    date_added = Column(String(10), default="")
-    date_updated = Column(String(10), default="")
-    verified = Column(Boolean, index=True, default=False)
-    file_path = Column(String(512), default="")
-    advisory_url = Column(Text, default="")
-    tags_json = Column(Text, default="[]")
-    aliases_json = Column(Text, default="[]")
-    cve_ids_json = Column(Text, default="[]")
-    affected_product = Column(String(256), index=True, nullable=True)
-    affected_versions_json = Column(Text, default="[]")
+    edb_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    title: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    author: Mapped[str | None] = mapped_column(
+        String(256), index=True, default="", nullable=True
+    )
+    platform: Mapped[str | None] = mapped_column(
+        String(64), index=True, default="", nullable=True
+    )
+    type: Mapped[str | None] = mapped_column(
+        String(32), index=True, default="", nullable=True
+    )
+    port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    date_published: Mapped[str | None] = mapped_column(
+        String(10), index=True, default="", nullable=True
+    )
+    date_added: Mapped[str | None] = mapped_column(
+        String(10), default="", nullable=True
+    )
+    date_updated: Mapped[str | None] = mapped_column(
+        String(10), default="", nullable=True
+    )
+    verified: Mapped[bool | None] = mapped_column(
+        Boolean, index=True, default=False, nullable=True
+    )
+    file_path: Mapped[str | None] = mapped_column(
+        String(512), default="", nullable=True
+    )
+    advisory_url: Mapped[str | None] = mapped_column(Text, default="", nullable=True)
+    tags_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    aliases_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    cve_ids_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    affected_product: Mapped[str | None] = mapped_column(
+        String(256), index=True, nullable=True
+    )
+    affected_versions_json: Mapped[str | None] = mapped_column(
+        Text, default="[]", nullable=True
+    )
 
 
 class ExploitCVERecord(Base):
     __tablename__ = "exploit_cves"
 
-    edb_id = Column(Integer, primary_key=True)
-    cve_id = Column(String(64), primary_key=True, index=True)
+    edb_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    cve_id: Mapped[str] = mapped_column(String(64), primary_key=True, index=True)
 
 
 class ProjectRecord(Base):
     __tablename__ = "projects"
 
-    id = Column(String(64), primary_key=True, default=_uuid)
-    name = Column(String(256), nullable=False, unique=True)
-    notes = Column(Text, default="")
-    created_at = Column(DateTime, default=utcnow)
-    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(256), nullable=False, unique=True)
+    notes: Mapped[str | None] = mapped_column(Text, default="", nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
+    updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, onupdate=utcnow, nullable=True
+    )
 
 
 class ProjectItemRecord(Base):
     __tablename__ = "project_items"
 
-    id = Column(String(64), primary_key=True, default=_uuid)
-    project_id = Column(String(64), index=True, nullable=False)
-    kind = Column(String(32), index=True, nullable=False)  # cve|exploit|dork|report
-    ref_id = Column(String(128), nullable=False)
-    note = Column(Text, default="")
-    created_at = Column(DateTime, default=utcnow)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    # cve | exploit | dork | report | search
+    kind: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    ref_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, default="", nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
 
 
 class DorkSavedRecord(Base):
     __tablename__ = "dork_saved"
 
-    id = Column(String(64), primary_key=True, default=_uuid)
-    project_id = Column(String(64), index=True, nullable=False)
-    template_id = Column(String(64), nullable=False)
-    category = Column(String(32), nullable=False)
-    target_domain = Column(String(256), default="")
-    username = Column(String(128), default="")
-    query = Column(Text, nullable=False)
-    risk_level = Column(String(16), default="low")
-    created_at = Column(DateTime, default=utcnow)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    project_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    template_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    category: Mapped[str] = mapped_column(String(32), nullable=False)
+    target_domain: Mapped[str | None] = mapped_column(
+        String(256), default="", nullable=True
+    )
+    username: Mapped[str | None] = mapped_column(String(128), default="", nullable=True)
+    query: Mapped[str] = mapped_column(Text, nullable=False)
+    risk_level: Mapped[str | None] = mapped_column(
+        String(16), default="low", nullable=True
+    )
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
 
 
 class GeneratedReportRecord(Base):
     __tablename__ = "generated_reports"
 
-    id = Column(String(64), primary_key=True, default=_uuid)
-    project_id = Column(String(64), index=True, nullable=True)
-    cve_id = Column(String(64), index=True, nullable=True)
-    edb_id = Column(Integer, index=True, nullable=True)
-    module_type = Column(String(32), default="")
-    formats_json = Column(Text, default="[]")
-    paths_json = Column(Text, default="[]")
-    created_at = Column(DateTime, default=utcnow)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    project_id: Mapped[str | None] = mapped_column(
+        String(64), index=True, nullable=True
+    )
+    cve_id: Mapped[str | None] = mapped_column(String(64), index=True, nullable=True)
+    edb_id: Mapped[int | None] = mapped_column(Integer, index=True, nullable=True)
+    module_type: Mapped[str | None] = mapped_column(
+        String(32), default="", nullable=True
+    )
+    formats_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    paths_json: Mapped[str | None] = mapped_column(Text, default="[]", nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
 
 
 class SavedSearchRecord(Base):
     __tablename__ = "saved_searches"
 
-    id = Column(String(64), primary_key=True, default=_uuid)
-    name = Column(String(128), nullable=False, unique=True)
-    kind = Column(String(16), nullable=False)  # cve|exploit
-    params_json = Column(Text, default="{}")
-    created_at = Column(DateTime, default=utcnow)
+    id: Mapped[str] = mapped_column(String(64), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # cve | exploit
+    params_json: Mapped[str | None] = mapped_column(Text, default="{}", nullable=True)
+    created_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
 
 
 class UserSettingRecord(Base):
     __tablename__ = "user_settings"
 
-    key = Column(String(64), primary_key=True)
-    value_json = Column(Text, default="null")
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value_json: Mapped[str | None] = mapped_column(Text, default="null", nullable=True)
 
 
 class AuditLogRecord(Base):
     __tablename__ = "audit_log"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ts = Column(DateTime, default=utcnow, index=True)
-    event = Column(String(64), index=True, nullable=False)
-    object_kind = Column(String(32), default="")
-    object_id = Column(String(128), default="")
-    risk_level = Column(String(16), default="")
-    details_json = Column(Text, default="{}")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ts: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, index=True, nullable=True
+    )
+    event: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    object_kind: Mapped[str | None] = mapped_column(
+        String(32), default="", nullable=True
+    )
+    object_id: Mapped[str | None] = mapped_column(
+        String(128), default="", nullable=True
+    )
+    risk_level: Mapped[str | None] = mapped_column(
+        String(16), default="", nullable=True
+    )
+    details_json: Mapped[str | None] = mapped_column(Text, default="{}", nullable=True)
 
 
 class SourceStateRecord(Base):
     __tablename__ = "source_state"
 
-    source = Column(String(32), primary_key=True)
-    last_success = Column(DateTime, nullable=True)
-    last_attempt = Column(DateTime, nullable=True)
-    etag = Column(String(256), default="")
-    last_modified = Column(String(64), default="")
-    status = Column(String(16), default="never")
-    error = Column(Text, default="")
-    row_count = Column(Integer, default=0)
+    source: Mapped[str] = mapped_column(String(32), primary_key=True)
+    last_success: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_attempt: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    etag: Mapped[str | None] = mapped_column(String(256), default="", nullable=True)
+    last_modified: Mapped[str | None] = mapped_column(
+        String(64), default="", nullable=True
+    )
+    status: Mapped[str | None] = mapped_column(
+        String(16), default="never", nullable=True
+    )
+    error: Mapped[str | None] = mapped_column(Text, default="", nullable=True)
+    row_count: Mapped[int | None] = mapped_column(Integer, default=0, nullable=True)
 
 
 class MetricRecord(Base):
     __tablename__ = "metrics"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    ts = Column(DateTime, default=utcnow, index=True)
-    name = Column(String(64), index=True, nullable=False)
-    value = Column(Float, default=0.0)
-    tags_json = Column(Text, default="{}")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    ts: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, index=True, nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    value: Mapped[float | None] = mapped_column(Float, default=0.0, nullable=True)
+    tags_json: Mapped[str | None] = mapped_column(Text, default="{}", nullable=True)
 
 
 class SchemaVersionRecord(Base):
     __tablename__ = "schema_version"
 
-    id = Column(Integer, primary_key=True)
-    version = Column(Integer, nullable=False, default=0)
-    applied_at = Column(DateTime, default=utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    applied_at: Mapped[datetime | None] = mapped_column(
+        DateTime, default=utcnow, nullable=True
+    )
 
 
 _engine = None

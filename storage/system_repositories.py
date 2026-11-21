@@ -29,7 +29,7 @@ class SettingsRepository:
         try:
             with get_session() as session:
                 row = session.get(UserSettingRecord, key)
-                return json.loads(row.value_json) if row else default
+                return json.loads(row.value_json or "null") if row else default
         except Exception as error:
             raise DatabaseError("settings_get", error) from error
 
@@ -49,7 +49,7 @@ class SettingsRepository:
     def all(self) -> dict[str, Any]:
         with get_session() as session:
             return {
-                row.key: json.loads(row.value_json)
+                row.key: json.loads(row.value_json or "null")
                 for row in session.query(UserSettingRecord).all()
             }
 

@@ -8,6 +8,7 @@ These are the only tables that may hold user-entered research inputs
 
 from __future__ import annotations
 
+import builtins
 import json
 from typing import Any
 
@@ -68,7 +69,7 @@ class ProjectRepository:
     def get_or_create(self, name: str) -> dict[str, Any]:
         return self.get(name) or self.create(name)
 
-    def list(self) -> list[dict[str, Any]]:
+    def list(self) -> builtins.list[dict[str, Any]]:
         with get_session() as session:
             rows = session.query(ProjectRecord).order_by(ProjectRecord.created_at).all()
             return [self._row(row) for row in rows]
@@ -96,7 +97,7 @@ class ProjectRepository:
                 project.updated_at = utcnow()
             return {"id": row.id, "kind": kind, "ref_id": ref_id}
 
-    def items(self, project_id: str) -> list[dict[str, Any]]:
+    def items(self, project_id: str) -> builtins.list[dict[str, Any]]:
         with get_session() as session:
             rows = (
                 session.query(ProjectItemRecord)
@@ -154,7 +155,7 @@ class DorkRepository:
         except Exception as error:
             raise DatabaseError("dork_save", error) from error
 
-    def list(self, project_id: str | None = None) -> list[dict[str, Any]]:
+    def list(self, project_id: str | None = None) -> builtins.list[dict[str, Any]]:
         with get_session() as session:
             query = session.query(DorkSavedRecord)
             if project_id:
@@ -206,7 +207,7 @@ class ReportRepository:
             session.flush()
             return {"id": row.id, "created_at": _iso(row.created_at)}
 
-    def list(self, limit: int = 50) -> list[dict[str, Any]]:
+    def list(self, limit: int = 50) -> builtins.list[dict[str, Any]]:
         with get_session() as session:
             rows = (
                 session.query(GeneratedReportRecord)
@@ -258,7 +259,7 @@ class SavedSearchRepository:
                 "params": json.loads(row.params_json or "{}"),
             }
 
-    def list(self, kind: str | None = None) -> list[dict[str, Any]]:
+    def list(self, kind: str | None = None) -> builtins.list[dict[str, Any]]:
         with get_session() as session:
             query = session.query(SavedSearchRecord)
             if kind:

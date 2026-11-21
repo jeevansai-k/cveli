@@ -89,7 +89,9 @@ class NVDAdapter(BaseAdapter):
         except (TypeError, ValueError, AttributeError):
             return 0
 
-    def _cvss(self, metrics: dict[str, Any]) -> tuple[float | None, str | None, str]:
+    def _cvss(
+        self, metrics: dict[str, Any]
+    ) -> tuple[float | None, str | None, str | None]:
         for key in ("cvssMetricV31", "cvssMetricV40", "cvssMetricV30"):
             entries = metrics.get(key) or []
             if entries:
