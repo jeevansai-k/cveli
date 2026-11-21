@@ -8,7 +8,7 @@ Responsibilities: Fetch, parse, and normalize data from NVD, CVE.org, vendors.
 Dependencies: httpx, pydantic, core.models.CVEModel.
 """
 
-from .base import BaseAdapter, BaseAdapterResult
+from .base import BaseAdapter
 from .cve_org import CVEOrgAdapter
 from .epss import EPSSAdapter
 from .nvd import NVDAdapter
@@ -16,7 +16,6 @@ from .vendor import CISAKEVAdapter
 
 __all__ = [
     "BaseAdapter",
-    "BaseAdapterResult",
     "NVDAdapter",
     "CVEOrgAdapter",
     "EPSSAdapter",

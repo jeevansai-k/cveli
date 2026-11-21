@@ -68,6 +68,7 @@ class CVERecord(Base):
     affected_products_json = Column(Text, default="[]")
     sources_json = Column(Text, default="[]")
     fetched_at = Column(DateTime, index=True, nullable=True)
+    first_seen_at = Column(DateTime, index=True, nullable=True)
 
 
 class WatchlistItemRecord(Base):

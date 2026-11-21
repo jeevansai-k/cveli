@@ -25,16 +25,7 @@ Example:
 from abc import ABC, abstractmethod
 from typing import Any
 
-import httpx
-
-try:
-    import aiohttp
-except ImportError:
-    aiohttp = None  # Optional async library
-
-
-# Base timeout for all API calls (with retry capability)
-DEFAULT_TIMEOUT = httpx.Timeout(timeout=30.0)
+from utils.http import HttpClient
 
 
 class BaseAdapter(ABC):
@@ -65,12 +56,15 @@ class BaseAdapter(ABC):
 
     name = "base_adapter"
 
-    def __init__(self, api_key: str = None, timeout: int = None):
-        self.timeout = timeout or DEFAULT_TIMEOUT
+    endpoint = "source"
+
+    def __init__(self, api_key: str | None = None, timeout: float | None = None):
         self.api_key = api_key or ""
+        self.http = HttpClient(self.endpoint, timeout=timeout)
+        self.timeout = self.http.timeout
 
     @abstractmethod
-    def fetch(self, query_params: dict[str, Any] = None) -> str | bytes:
+    def fetch(self, query_params: dict[str, Any] | None = None) -> str | bytes:
         """Fetch raw data from the source.
 
         Purpose: Retrieve raw HTML/XML/JSON data from the external source.
@@ -145,42 +139,3 @@ class BaseAdapter(ABC):
         The output matches the canonical CVE schema.
         """
         raise NotImplementedError("Must implement normalize() method")
-
-
-class BaseAdapterResult(BaseAdapter):
-    """Result wrapper for adapter operations."""
-
-    def __init__(self, success: bool, data: Any = None, error: Exception = None):
-        self.success = success
-        self.data = data  # Raw fetched data or parsed records
-        self.error = error if not success else None
-        self.records = []  # Will be populated after parse()
-
-    def add_record(self, record: dict[str, Any]):
-        """Add a normalized CVE record to the result."""
-        if not self.success:
-            raise (
-                self.error
-                if isinstance(self.error, Exception)
-                else type(self.error)(self.error.args[0])
-            )
-
-
-# Async adapter for high-concurrency scenarios (optional)
-class AsyncAdapter(ABC):
-    """Async version of BaseAdapter using aiohttp instead of httpx."""
-
-    @abstractmethod
-    async def fetch_async(self, query_params: dict[str, Any] = None) -> str | bytes:
-        """Fetch raw data asynchronously."""
-        raise NotImplementedError("Must implement fetch_async() method")
-
-
-# Async result wrapper
-class AsyncAdapterResult:
-    """Async version of BaseAdapterResult."""
-
-    def __init__(self, success: bool, data: Any = None, error: Exception = None):
-        self.success = success
-        self.data = data
-        self.error = error if not success else None

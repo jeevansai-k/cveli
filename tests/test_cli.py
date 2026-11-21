@@ -32,10 +32,13 @@ runner = CliRunner()
 
 
 @pytest.fixture(autouse=True)
-def setup_cli_db(tmp_path):
+def setup_cli_db(tmp_path, monkeypatch):
     db_file = tmp_path / "test_cli.db"
     init_database(db_url=f"sqlite:///{db_file}")
     cache_clear()
+    # The interactive results browser only opens on a real terminal (B11);
+    # these tests exercise that path, so simulate a TTY.
+    monkeypatch.setattr("cli.commands.search_cmd.is_interactive", lambda: True)
 
 
 def test_cli_version():

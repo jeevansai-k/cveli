@@ -243,3 +243,24 @@ SEVERITY_SYMBOLS = {
     "INFO": "·",
     "N/A": "–",
 }
+
+
+_active_palette: Palette = OPUS_DARK
+
+
+def set_active_palette(name: str) -> Palette:
+    """Select the palette used for Rich CLI rendering."""
+    global _active_palette
+    _active_palette = PALETTES.get(name, OPUS_DARK)
+    return _active_palette
+
+
+def active_palette() -> Palette:
+    return _active_palette
+
+
+def style(token: str) -> str:
+    """Concrete Rich style string for a semantic token of the active palette."""
+    rich_theme = to_rich_theme(_active_palette)
+    found = rich_theme.styles.get(token)
+    return str(found) if found is not None else ""

@@ -102,10 +102,18 @@ def m003_exploit_fts(conn: Connection) -> None:
     )
 
 
+def m004_first_seen(conn: Connection) -> None:
+    _add_columns(conn, "cves", {"first_seen_at": "DATETIME"})
+    conn.execute(
+        text("UPDATE cves SET first_seen_at = fetched_at WHERE first_seen_at IS NULL")
+    )
+
+
 MIGRATIONS: list[tuple[int, str, Callable[[Connection], None]]] = [
     (1, "legacy columns", m001_legacy_columns),
     (2, "2.0 cve columns", m002_v2_cve_columns),
     (3, "exploit full-text index", m003_exploit_fts),
+    (4, "cve first-seen timestamp", m004_first_seen),
 ]
 LATEST_VERSION = MIGRATIONS[-1][0]
 

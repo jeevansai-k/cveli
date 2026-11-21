@@ -1,0 +1,365 @@
+/* CVELI — Opus 5.5 design system (Textual CSS).
+ * Colours come exclusively from theme tokens defined in cli/tui/theme.py.
+ * Never add literal colours here: tests/test_foundations.py enforces it.
+ */
+
+Screen {
+    background: $background;
+    color: $foreground;
+}
+
+/* ---------- Command bar ------------------------------------------------- */
+#command_bar {
+    height: 3;
+    dock: top;
+    background: $surface;
+    border-bottom: solid $border;
+    padding: 0 1;
+}
+#command_bar #app_title {
+    width: auto;
+    padding: 1 2 0 0;
+    color: $primary;
+    text-style: bold;
+}
+#command_bar #global_search {
+    width: 1fr;
+    border: tall $border;
+    background: $background;
+}
+#command_bar #global_search:focus {
+    border: tall $focus-ring;
+}
+#command_bar #source_status {
+    width: auto;
+    max-width: 48;
+    padding: 1 0 0 2;
+    color: $text-muted;
+}
+
+/* ---------- Layout ------------------------------------------------------ */
+#body {
+    height: 1fr;
+}
+#nav {
+    width: 24;
+    background: $surface;
+    border-right: solid $border;
+    padding: 1 0;
+}
+#nav:focus {
+    border-right: thick $focus-ring;
+}
+#workspace {
+    width: 1fr;
+    padding: 0 1;
+}
+#intel {
+    width: 36;
+    background: $surface;
+    border-left: solid $border;
+    padding: 1 2;
+}
+.-hidden {
+    display: none;
+}
+
+/* Responsive breakpoints (App.HORIZONTAL_BREAKPOINTS) */
+Screen.-narrow #intel,
+Screen.-medium #intel {
+    display: none;
+}
+Screen.-medium #intel.-pinned {
+    display: block;
+}
+Screen.-narrow #nav {
+    width: 10;
+}
+Screen.-narrow #command_bar #source_status,
+Screen.-narrow #command_bar #app_title {
+    display: none;
+}
+
+/* ---------- Typography -------------------------------------------------- */
+.view-title {
+    text-style: bold;
+    color: $foreground;
+    padding: 1 0 0 0;
+}
+.view-subtitle,
+.muted {
+    color: $text-muted;
+}
+.section-title {
+    text-style: bold;
+    color: $primary;
+    padding: 1 0 0 0;
+}
+.label {
+    color: $text-muted;
+    text-style: bold;
+}
+.mono {
+    text-style: none;
+}
+
+/* ---------- Brand ------------------------------------------------------- */
+.brand {
+    content-align: center middle;
+    color: $primary;
+    text-style: bold;
+    height: auto;
+    padding: 1 0;
+}
+
+/* ---------- Cards / panels --------------------------------------------- */
+.card {
+    background: $surface;
+    border: round $border;
+    padding: 0 1;
+    margin: 1 0 0 0;
+    height: auto;
+}
+.card:focus-within {
+    border: round $focus-ring;
+}
+.card-row {
+    height: auto;
+}
+.stat-card {
+    width: 1fr;
+    height: 5;
+    background: $surface;
+    border: round $border;
+    padding: 0 1;
+    margin-right: 1;
+    content-align: center middle;
+}
+
+/* ---------- Badges ------------------------------------------------------ */
+.badge {
+    width: auto;
+    height: 1;
+    padding: 0 1;
+    margin-right: 1;
+    text-style: bold;
+}
+.sev-critical { color: $sev-critical; }
+.sev-high { color: $sev-high; }
+.sev-medium { color: $sev-medium; }
+.sev-low { color: $sev-low; }
+.sev-none { color: $sev-none; }
+.label-research { color: $secondary; }
+.label-poc { color: $warning; }
+.label-unverified { color: $text-muted; }
+.label-patch { color: $success; }
+.risk-low { color: $success; }
+.risk-medium { color: $warning; }
+.risk-high { color: $error; }
+
+/* ---------- Notices / states ------------------------------------------- */
+.notice {
+    border-left: thick $warning;
+    background: $surface;
+    padding: 0 1;
+    margin: 1 0 0 0;
+    height: auto;
+    color: $foreground;
+}
+.notice-info {
+    border-left: thick $accent;
+}
+EmptyState, ErrorState {
+    height: auto;
+    border: round $border;
+    padding: 1 2;
+    margin: 1 0;
+}
+ErrorState {
+    border: round $error;
+}
+ErrorState .state-title {
+    color: $error;
+    text-style: bold;
+}
+EmptyState .state-title {
+    text-style: bold;
+}
+LoadingIndicator {
+    height: 3;
+    color: $primary;
+}
+
+/* ---------- Form controls ---------------------------------------------- */
+Input, Select, TextArea {
+    border: tall $border;
+}
+Input:focus, Select:focus, TextArea:focus, DataTable:focus, OptionList:focus,
+Switch:focus, Checkbox:focus, RadioSet:focus {
+    border: tall $focus-ring;
+}
+Button {
+    margin-right: 1;
+    min-width: 10;
+}
+Button:focus {
+    text-style: bold reverse;
+}
+.form-row {
+    height: auto;
+    margin: 1 0 0 0;
+}
+.form-row > Input {
+    width: 1fr;
+}
+.form-row > Label, .form-row > .label {
+    padding: 1 1 0 0;
+    width: auto;
+}
+.field {
+    width: 1fr;
+    height: auto;
+    margin-right: 1;
+}
+
+/* ---------- Tables ------------------------------------------------------ */
+DataTable {
+    height: 1fr;
+    min-height: 6;
+    border: tall $border;
+}
+#results_table {
+    height: 1fr;
+    margin: 0 1;
+}
+
+/* ---------- Code blocks ------------------------------------------------- */
+CodeBlock {
+    height: auto;
+    max-height: 30;
+    border: round $border;
+    margin: 1 0 0 0;
+}
+CodeBlock TextArea {
+    height: auto;
+    max-height: 26;
+    border: none;
+}
+CodeBlock .codeblock-bar {
+    height: 1;
+    background: $panel;
+    padding: 0 1;
+}
+CodeBlock .codeblock-bar Static {
+    width: 1fr;
+    color: $text-muted;
+}
+CodeBlock .codeblock-bar Button {
+    height: 1;
+    min-width: 8;
+    border: none;
+}
+
+/* ---------- Modals ------------------------------------------------------ */
+ConfirmModal, CVEDetailModal {
+    align: center middle;
+    background: $background 60%;
+}
+ConfirmModal > #dialog, CVEDetailModal > Container {
+    width: 76;
+    max-width: 95%;
+    height: auto;
+    max-height: 90%;
+    background: $surface;
+    border: thick $warning;
+    padding: 1 2;
+}
+ConfirmModal #dialog_buttons {
+    height: auto;
+    margin-top: 1;
+}
+
+/* ---------- Search results browser (cveli search) ----------------------- */
+#search_title {
+    content-align: center middle;
+    padding: 1 0 0 0;
+    text-style: bold;
+}
+#search_summary, #search_help, #search_message, #source_note {
+    padding: 0 1;
+}
+#source_note {
+    color: $text-muted;
+}
+#search_help {
+    color: $primary;
+    text-style: bold;
+}
+#search_message {
+    color: $warning;
+    min-height: 1;
+}
+#empty_state {
+    border: round $border;
+    display: none;
+    height: auto;
+    margin: 1;
+    padding: 1 2;
+}
+#selection_input {
+    margin: 0 1;
+}
+.detail_shell {
+    height: 1fr;
+    padding: 1;
+}
+.detail_header {
+    border: round $accent;
+    padding: 0 1;
+    margin-bottom: 1;
+    text-style: bold;
+}
+.detail_top {
+    height: auto;
+}
+.detail_column {
+    width: 1fr;
+    height: auto;
+    border: round $border;
+    padding: 0 1;
+    margin-right: 1;
+}
+.detail_section {
+    border: round $border;
+    padding: 0 1;
+    margin-top: 1;
+    height: auto;
+}
+.section_title {
+    text-style: bold;
+    color: $primary;
+}
+.detail_help {
+    padding-top: 1;
+    color: $text-muted;
+}
+.reference_row {
+    height: auto;
+    padding: 0;
+}
+.reference_row > Static {
+    width: auto;
+    padding-right: 1;
+}
+Link {
+    color: $accent;
+    text-style: underline;
+}
+Link:focus {
+    text-style: bold underline reverse;
+}
+
+/* ---------- Footer ------------------------------------------------------ */
+Footer {
+    background: $surface;
+}

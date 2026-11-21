@@ -8,12 +8,12 @@ Responsibilities: Fetch CVE JSON v5 records from CVE.org, normalize metadata.
 Dependencies: httpx, sources.base.BaseAdapter, core.models.CVEModel.
 """
 
+import json
+import re
 from typing import Any
 
-import httpx
-
-from config.version import USER_AGENT
 from core.models import CVEModel
+from core.text import sanitize_terminal_text
 from sources.base import BaseAdapter
 from utils.errors import NetworkError
 from utils.logger import get_logger
@@ -27,10 +27,7 @@ class CVEOrgAdapter(BaseAdapter):
     """Adapter for official CVE.org v5 API."""
 
     name = "cve_org"
-
-    def __init__(self, api_key: str | None = None, timeout: int = 30):
-        super().__init__(api_key=api_key, timeout=timeout)
-        self.headers = {"User-Agent": USER_AGENT}
+    endpoint = "CVE.org"
 
     def fetch(self, query_params: dict[str, Any] | None = None) -> str:
         """Fetch a specific CVE record from CVE.org API v5."""
@@ -43,31 +40,16 @@ class CVEOrgAdapter(BaseAdapter):
                 message="cve_id parameter required for CVE.org fetch",
             )
 
-        url = f"{CVE_ORG_API_URL}/{cve_id}"
-
-        try:
-            with httpx.Client(
-                timeout=float(self.timeout), follow_redirects=True
-            ) as client:
-                response = client.get(url, headers=self.headers)
-                if response.status_code != 200:
-                    raise NetworkError(
-                        endpoint="CVE.org",
-                        status=response.status_code,
-                        message=f"CVE.org API returned status {response.status_code}",
-                    )
-                return response.text
-        except httpx.HTTPError as e:
-            raise NetworkError(
-                endpoint="CVE.org", message=f"HTTP request to CVE.org failed: {e}"
-            ) from e
+        if not re.match(r"^CVE-\d{4}-\d{4,7}$", cve_id):
+            raise NetworkError(endpoint="CVE.org", message=f"invalid CVE ID {cve_id!r}")
+        return self.http.get(f"{CVE_ORG_API_URL}/{cve_id}").text
 
     def parse(self, raw_data: str) -> list[dict[str, Any]]:
         """Parse raw CVE.org JSON v5 format."""
-        import json
-
         try:
             data = json.loads(raw_data)
+            if not isinstance(data, dict):
+                return []
             return [data] if "cveMetadata" in data or "containers" in data else []
         except Exception as e:
             log.error(f"Failed to parse CVE.org JSON: {e}")
@@ -99,13 +81,13 @@ class CVEOrgAdapter(BaseAdapter):
         vector = None
 
         for m in metrics:
-            if "cvssV3_1" in m:
+            if "cvssV3_1" in m and m["cvssV3_1"].get("baseScore") is not None:
                 v = m["cvssV3_1"]
                 cvss_score = float(v["baseScore"])
                 severity = str(v.get("baseSeverity", "")).capitalize() or None
                 vector = v.get("vectorString")
                 break
-            elif "cvssV3_0" in m:
+            elif "cvssV3_0" in m and m["cvssV3_0"].get("baseScore") is not None:
                 v = m["cvssV3_0"]
                 cvss_score = float(v["baseScore"])
                 severity = str(v.get("baseSeverity", "")).capitalize() or None
@@ -134,7 +116,7 @@ class CVEOrgAdapter(BaseAdapter):
 
         return {
             "id": cve_id,
-            "summary": summary,
+            "summary": sanitize_terminal_text(summary),
             "severity": severity
             if severity in ["Critical", "High", "Medium", "Low", "Info"]
             else None,

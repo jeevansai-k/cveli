@@ -2,93 +2,113 @@
 NVD API 2.0 Source Adapter.
 
 Purpose: Fetch and normalize vulnerability records from NVD.
-Inputs: Query parameters (cve_id, keyword, severity, date range, pagination).
-Outputs: List of canonical CVEModel objects.
-Responsibilities: Fetch NVD API 2.0 JSON and normalize fields.
-Dependencies: httpx, sources.base.BaseAdapter, core.models.CVEModel, utils.logger.
+Fix B6: follows ``startIndex`` pagination up to ``totalResults`` (bounded by the
+caller's limit) and goes through the shared rate-limited HTTP client
+(5 req/30 s anonymous, 50 req/30 s with ``NVD_API_KEY``).
 """
 
+from __future__ import annotations
+
+import json
 from typing import Any
 
-import httpx
-
-from config.version import USER_AGENT
+from config.settings import get_settings
 from core.models import CWEID, CVEModel
+from core.text import sanitize_terminal_text
 from sources.base import BaseAdapter
-from utils.errors import NetworkError
+from utils.http import configure_host_limit
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
 NVD_API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+NVD_HOST = "services.nvd.nist.gov"
+NVD_MAX_PAGE = 2000
+VALID_SEVERITIES = ("Critical", "High", "Medium", "Low", "Info")
 
 
 class NVDAdapter(BaseAdapter):
     """Adapter for National Vulnerability Database (NVD) API 2.0."""
 
     name = "nvd"
+    endpoint = "NVD"
 
-    def __init__(self, api_key: str | None = None, timeout: int = 30):
-        super().__init__(api_key=api_key, timeout=timeout)
-        self.headers = {"User-Agent": USER_AGENT}
+    def __init__(self, api_key: str | None = None, timeout: float | None = None):
+        settings = get_settings()
+        super().__init__(api_key=api_key or settings.nvd_api_key, timeout=timeout)
+        self.headers: dict[str, str] = {}
         if self.api_key:
             self.headers["apiKey"] = self.api_key
+        rate, per = (50, 30.0) if self.api_key else (5, 30.0)
+        configure_host_limit(NVD_HOST, rate, per)
+
+    def build_params(self, params: dict[str, Any]) -> dict[str, Any]:
+        req: dict[str, Any] = {}
+        if params.get("cve_id"):
+            req["cveId"] = str(params["cve_id"]).strip().upper()
+        if params.get("keyword"):
+            req["keywordSearch"] = str(params["keyword"]).strip()
+        req["resultsPerPage"] = min(
+            int(params.get("resultsPerPage", 100) or 100), NVD_MAX_PAGE
+        )
+        if params.get("startIndex"):
+            req["startIndex"] = int(params["startIndex"])
+        for key in ("pubStartDate", "pubEndDate", "lastModStartDate", "lastModEndDate"):
+            if params.get(key):
+                req[key] = params[key]
+        return req
 
     def fetch(self, query_params: dict[str, Any] | None = None) -> str:
-        """Fetch raw JSON payload from NVD API 2.0."""
-        params = query_params or {}
-        req_params: dict[str, Any] = {}
+        """Fetch one raw JSON page from NVD API 2.0."""
+        response = self.http.get(
+            NVD_API_URL,
+            params=self.build_params(query_params or {}),
+            headers=self.headers,
+        )
+        return response.text
 
-        if "cve_id" in params and params["cve_id"]:
-            req_params["cveId"] = params["cve_id"].strip().upper()
-        if "keyword" in params and params["keyword"]:
-            req_params["keywordSearch"] = params["keyword"].strip()
-        if "resultsPerPage" in params:
-            req_params["resultsPerPage"] = min(int(params["resultsPerPage"]), 2000)
-        else:
-            req_params["resultsPerPage"] = 100
-        if "startIndex" in params:
-            req_params["startIndex"] = int(params["startIndex"])
-        if params.get("pubStartDate"):
-            req_params["pubStartDate"] = params["pubStartDate"]
-        if params.get("pubEndDate"):
-            req_params["pubEndDate"] = params["pubEndDate"]
-
-        try:
-            with httpx.Client(
-                timeout=float(self.timeout), follow_redirects=True
-            ) as client:
-                response = client.get(
-                    NVD_API_URL, headers=self.headers, params=req_params
-                )
-                if response.status_code != 200:
-                    raise NetworkError(
-                        endpoint="NVD",
-                        status=response.status_code,
-                        message=f"NVD API returned status code {response.status_code}",
-                    )
-                return response.text
-        except httpx.HTTPError as e:
-            raise NetworkError(
-                endpoint="NVD", message=f"HTTP request to NVD failed: {e}"
-            ) from e
-
-    def parse(self, raw_data: str) -> list[dict[str, Any]]:
+    def parse(self, raw_data: str | bytes) -> list[dict[str, Any]]:
         """Parse raw NVD JSON into list of item dicts."""
-        import json
-
         try:
             data = json.loads(raw_data)
-            vulnerabilities = data.get("vulnerabilities", [])
-            records = []
-            for item in vulnerabilities:
-                cve_obj = item.get("cve", {})
-                if cve_obj:
-                    records.append(cve_obj)
-            return records
-        except Exception as e:
-            log.error(f"Failed to parse NVD JSON: {e}")
+        except (TypeError, ValueError) as error:
+            log.error(f"Failed to parse NVD JSON: {error}")
             return []
+        if not isinstance(data, dict):
+            return []
+        return [
+            item["cve"]
+            for item in data.get("vulnerabilities", []) or []
+            if isinstance(item, dict) and isinstance(item.get("cve"), dict)
+        ]
+
+    @staticmethod
+    def total_results(raw_data: str | bytes) -> int:
+        try:
+            return int(json.loads(raw_data).get("totalResults", 0))
+        except (TypeError, ValueError, AttributeError):
+            return 0
+
+    def _cvss(self, metrics: dict[str, Any]) -> tuple[float | None, str | None, str]:
+        for key in ("cvssMetricV31", "cvssMetricV40", "cvssMetricV30"):
+            entries = metrics.get(key) or []
+            if entries:
+                primary = next(
+                    (e for e in entries if e.get("type") == "Primary"), entries[0]
+                )
+                data = primary.get("cvssData", {})
+                if data.get("baseScore") is None:
+                    continue
+                severity = str(data.get("baseSeverity", "")).capitalize() or None
+                return float(data["baseScore"]), severity, data.get("vectorString")
+        entries = metrics.get("cvssMetricV2") or []
+        if entries:
+            data = entries[0].get("cvssData", {})
+            if data.get("baseScore") is not None:
+                base_sev = entries[0].get("baseSeverity")
+                severity = str(base_sev).capitalize() if base_sev else None
+                return float(data["baseScore"]), severity, data.get("vectorString")
+        return None, None, None
 
     def normalize(self, record: dict[str, Any]) -> dict[str, Any]:
         """Normalize NVD CVE JSON record into canonical schema."""
@@ -96,95 +116,78 @@ class NVDAdapter(BaseAdapter):
         if not cve_id.startswith("CVE-"):
             raise ValueError("NVD record missing valid CVE ID")
 
-        # Extract descriptions
-        descriptions = record.get("descriptions", [])
-        summary = ""
-        for d in descriptions:
-            if d.get("lang") == "en":
-                summary = d.get("value", "")
-                break
+        descriptions = record.get("descriptions", []) or []
+        summary = next(
+            (d.get("value", "") for d in descriptions if d.get("lang") == "en"), ""
+        )
         if not summary and descriptions:
             summary = descriptions[0].get("value", "")
 
-        # Extract CVSS metrics (v31 preferred, fallback v30, v2)
-        metrics = record.get("metrics", {})
-        cvss_score = None
-        severity = None
-        vector = None
+        cvss_score, severity, vector = self._cvss(record.get("metrics", {}) or {})
 
-        if "cvssMetricV31" in metrics and metrics["cvssMetricV31"]:
-            cvss_data = metrics["cvssMetricV31"][0].get("cvssData", {})
-            cvss_score = float(cvss_data["baseScore"])
-            severity = str(cvss_data.get("baseSeverity", "")).capitalize() or None
-            vector = cvss_data.get("vectorString")
-        elif "cvssMetricV30" in metrics and metrics["cvssMetricV30"]:
-            cvss_data = metrics["cvssMetricV30"][0].get("cvssData", {})
-            cvss_score = float(cvss_data["baseScore"])
-            severity = str(cvss_data.get("baseSeverity", "")).capitalize() or None
-            vector = cvss_data.get("vectorString")
-        elif "cvssMetricV2" in metrics and metrics["cvssMetricV2"]:
-            cvss_data = metrics["cvssMetricV2"][0].get("cvssData", {})
-            cvss_score = float(cvss_data["baseScore"])
-            base_sev = metrics["cvssMetricV2"][0].get("baseSeverity", "INFO")
-            severity = str(base_sev).capitalize() if base_sev else None
-            vector = cvss_data.get("vectorString")
+        references: list[str] = []
+        details: list[dict[str, Any]] = []
+        for ref in record.get("references", []) or []:
+            url = ref.get("url") if isinstance(ref, dict) else None
+            if not url or url in references:
+                continue
+            references.append(url)
+            details.append(
+                {
+                    "url": url,
+                    "source": str(ref.get("source", "")),
+                    "tags": [str(tag) for tag in ref.get("tags", []) or []],
+                }
+            )
 
-        # Dates
-        published = record.get("published", "")[:10]
-        updated = record.get("lastModified", "")[:10]
-
-        # References
-        references = [
-            r.get("url") for r in record.get("references", []) if r.get("url")
-        ]
-
-        # Weaknesses (CWE)
         cwe_obj = None
-        weaknesses = record.get("weaknesses", [])
-        if weaknesses:
-            for w in weaknesses:
-                for desc_item in w.get("description", []):
-                    cwe_str = desc_item.get("value", "")
-                    if cwe_str.startswith("CWE-"):
-                        try:
-                            num = int(cwe_str.replace("CWE-", ""))
-                            cwe_obj = {"id": num, "name": cwe_str}
-                            break
-                        except ValueError:
-                            pass
-                if cwe_obj:
+        for weakness in record.get("weaknesses", []) or []:
+            for desc_item in weakness.get("description", []) or []:
+                cwe_str = str(desc_item.get("value", ""))
+                if cwe_str.startswith("CWE-"):
+                    try:
+                        cwe_obj = {"id": int(cwe_str[4:]), "name": cwe_str}
+                    except ValueError:
+                        continue
                     break
+            if cwe_obj:
+                break
 
-        # Affected configurations / CPEs
-        products = []
-        configurations = record.get("configurations", [])
-        for config in configurations:
-            for node in config.get("nodes", []):
-                for cpe_match in node.get("cpeMatch", []):
-                    criteria = cpe_match.get("criteria", "")
-                    parts = criteria.split(":")
+        products: list[dict[str, str]] = []
+        for config in record.get("configurations", []) or []:
+            for node in config.get("nodes", []) or []:
+                for cpe_match in node.get("cpeMatch", []) or []:
+                    if cpe_match.get("vulnerable") is False:
+                        continue
+                    parts = str(cpe_match.get("criteria", "")).split(":")
                     if len(parts) >= 5:
-                        p_vendor = parts[3]
-                        p_product = parts[4]
-                        p_version = parts[5] if len(parts) > 5 else "*"
-                        products.append(
-                            {"name": f"{p_vendor}/{p_product}", "version": p_version}
-                        )
+                        version = parts[5] if len(parts) > 5 else "*"
+                        for bound in (
+                            "versionStartIncluding",
+                            "versionEndExcluding",
+                            "versionEndIncluding",
+                        ):
+                            if cpe_match.get(bound):
+                                version = (
+                                    f"{bound.replace('version', '')} {cpe_match[bound]}"
+                                )
+                        product = {"name": f"{parts[3]}/{parts[4]}", "version": version}
+                        if product not in products:
+                            products.append(product)
 
         vendor = products[0]["name"].split("/")[0] if products else None
 
         return {
             "id": cve_id,
-            "summary": summary,
-            "severity": severity
-            if severity in ["Critical", "High", "Medium", "Low", "Info"]
-            else None,
+            "summary": sanitize_terminal_text(summary),
+            "severity": severity if severity in VALID_SEVERITIES else None,
             "cvss": cvss_score,
             "vector": vector,
-            "published": published,
-            "updated": updated,
+            "published": str(record.get("published", ""))[:10],
+            "updated": str(record.get("lastModified", ""))[:10],
             "affected_products": products,
             "references": references,
+            "reference_details": details,
             "exploit_available": False,
             "epss": None,
             "vendor": vendor,
@@ -193,20 +196,36 @@ class NVDAdapter(BaseAdapter):
             "sources": ["NVD"],
         }
 
-    def fetch_and_normalize(
-        self, query_params: dict[str, Any] | None = None
-    ) -> list[CVEModel]:
-        """Fetch raw NVD feed, parse, and normalize into list of CVEModel."""
-        raw = self.fetch(query_params=query_params)
-        records = self.parse(raw)
+    def _to_models(self, records: list[dict[str, Any]]) -> list[CVEModel]:
         models = []
         for rec in records:
             try:
-                norm_dict = self.normalize(rec)
-                cwe_dict = norm_dict.pop("cwe", None)
+                norm = self.normalize(rec)
+                cwe_dict = norm.pop("cwe", None)
                 if cwe_dict:
-                    norm_dict["cwe"] = CWEID(**cwe_dict)
-                models.append(CVEModel(**norm_dict))
-            except Exception as e:
-                log.warning(f"Error normalizing NVD record {rec.get('id')}: {e}")
+                    norm["cwe"] = CWEID(**cwe_dict)
+                models.append(CVEModel(**norm))
+            except Exception as error:
+                log.warning(f"Error normalizing NVD record {rec.get('id')}: {error}")
         return models
+
+    def fetch_and_normalize(
+        self, query_params: dict[str, Any] | None = None
+    ) -> list[CVEModel]:
+        """Fetch every page (bounded by ``resultsPerPage`` as the overall limit)."""
+        params = dict(query_params or {})
+        limit = max(1, int(params.get("resultsPerPage", 100) or 100))
+        start = int(params.get("startIndex", 0) or 0)
+        models: list[CVEModel] = []
+        while True:
+            page_size = min(NVD_MAX_PAGE, limit - len(models))
+            raw = self.fetch(
+                {**params, "resultsPerPage": page_size, "startIndex": start}
+            )
+            records = self.parse(raw)
+            models.extend(self._to_models(records))
+            total = self.total_results(raw)
+            start += len(records)
+            if not records or start >= total or len(models) >= limit:
+                break
+        return models[:limit]

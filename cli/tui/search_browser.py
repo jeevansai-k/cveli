@@ -12,18 +12,18 @@ from textual.reactive import reactive
 from textual.screen import Screen
 from textual.widgets import DataTable, Header, Link, Static
 
-from core.formatter import build_reference_items, format_cvss, format_epss
-from core.models import CVEModel
+from cli.tui.theme import apply_theme
+from core.formatter import (
+    build_reference_items,
+    format_cvss,
+    format_epss,
+    severity_label,
+)
+from core.models import CVEModel, ExploitModel
+from core.safety import EXPLOIT_NOTICE, EXPLOITDB_ATTRIBUTION
+from core.text import one_line, sanitize_terminal_text
 
 PAGE_SIZE = 25
-SEVERITY_STYLES = {
-    "CRITICAL": "bold bright_magenta",
-    "HIGH": "bold bright_red",
-    "MEDIUM": "bold yellow",
-    "LOW": "bold green",
-    "INFO": "dim",
-    "N/A": "dim",
-}
 
 
 @dataclass
@@ -115,6 +115,7 @@ class SearchResultsScreen(Screen):
         yield Static(
             "[Alt+Left] Previous    [Alt+Right] Next    [Enter] Select    [Q] Quit",
             id="search_help",
+            markup=False,
         )
         yield Static("", id="search_message")
 
@@ -123,7 +124,15 @@ class SearchResultsScreen(Screen):
         table.cursor_type = "row"
         table.zebra_stripes = True
         table.add_columns(
-            "#", "CVE ID", "Severity", "CVSS", "EPSS", "Vendor", "Published", "Summary"
+            "#",
+            "CVE ID",
+            "Severity",
+            "CVSS",
+            "EPSS",
+            "KEV",
+            "Vendor",
+            "Published",
+            "Summary",
         )
         self.refresh_table()
 
@@ -137,7 +146,9 @@ class SearchResultsScreen(Screen):
             f"CVE Search Results\n{pager.page_title()}"
         )
         self.query_one("#search_summary", Static).update(pager.page_range_label())
-        self.query_one("#source_note", Static).update(self.app.source_note)
+        self.query_one("#source_note", Static).update(
+            Text(sanitize_terminal_text(self.app.source_note))
+        )
         self.query_one("#search_message", Static).update("")
 
         if not pager.total_results:
@@ -156,16 +167,16 @@ class SearchResultsScreen(Screen):
         table.display = True
         empty_state.display = False
         for serial, cve in zip(pager.page_serials(), self.page_items, strict=True):
-            severity = (cve.severity or "N/A").upper()
             table.add_row(
-                Text(str(serial), style="bold bright_white"),
-                Text(cve.id, style="bold cyan"),
-                Text(severity, style=SEVERITY_STYLES.get(severity, "white")),
-                Text(format_cvss(cve.cvss), style="bold white"),
-                Text(format_epss(cve.epss), style="bright_cyan"),
-                cve.vendor or "N/A",
+                Text(str(serial), style="bold"),
+                Text(cve.id, style="bold"),
+                Text(severity_label(cve.severity)),
+                Text(format_cvss(cve.cvss)),
+                Text(format_epss(cve.epss)),
+                "YES" if cve.kev else "no",
+                Text(one_line(cve.vendor or "N/A", 20)),
                 cve.published or "N/A",
-                cve.summary[:80],
+                Text(one_line(cve.summary, 80)),
                 key=str(serial),
             )
         self._update_selection_input()
@@ -262,16 +273,30 @@ class DetailScreen(Screen):
         Binding("q", "quit", "Quit", key_display="Q"),
     ]
 
-    def __init__(self, cve: CVEModel) -> None:
+    def __init__(
+        self, cve: CVEModel, exploits: list[ExploitModel] | None = None
+    ) -> None:
         super().__init__()
         self.cve = cve
+        self.exploits = exploits if exploits is not None else self._lookup(cve.id)
+
+    @staticmethod
+    def _lookup(cve_id: str) -> list[ExploitModel]:
+        try:
+            from storage.exploit_repository import ExploitRepository
+
+            return ExploitRepository().for_cve(cve_id)
+        except Exception:
+            return []
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False)
-        severity = (self.cve.severity or "N/A").upper()
         yield Container(
             Static(
-                f"{self.cve.id}    [{severity}] [CVSS {format_cvss(self.cve.cvss)}]",
+                Text(
+                    f"{self.cve.id}    {severity_label(self.cve.severity)}    "
+                    f"CVSS {format_cvss(self.cve.cvss)}"
+                ),
                 classes="detail_header",
             ),
             Horizontal(
@@ -279,11 +304,22 @@ class DetailScreen(Screen):
                 self._risk_column(),
                 classes="detail_top",
             ),
-            self._section("Description", Static(self.cve.summary or "N/A")),
+            self._section(
+                "Description",
+                Static(Text(sanitize_terminal_text(self.cve.summary) or "N/A")),
+            ),
             self._section("Affected Products", self._products_widget()),
+            self._section(
+                f"Public exploit references ({len(self.exploits)})",
+                self._exploits_widget(),
+            ),
             self._section("References", self._references_widget()),
             self._section("Sources", Static(self._source_text())),
-            Static("[Enter] Back    [Q] Quit", classes="detail_help"),
+            Static(
+                "[Enter/Esc] Back    [M] Research template    [Q] Quit",
+                classes="detail_help",
+                markup=False,
+            ),
             classes="detail_shell",
         )
 
@@ -293,24 +329,20 @@ class DetailScreen(Screen):
             cwe = f"CWE-{self.cve.cwe.id}: {self.cve.cwe.name}"
         column = Vertical(
             Static("Vulnerability", classes="section_title"),
-            Static(f"Vendor: {self.cve.vendor or 'N/A'}"),
+            Static(Text(f"Vendor: {one_line(self.cve.vendor or 'N/A')}")),
             Static(f"Published: {self.cve.published or 'N/A'}"),
             Static(f"Modified: {self.cve.updated or 'N/A'}"),
-            Static(f"CWE: {cwe}"),
+            Static(Text(f"CWE: {cwe}")),
             classes="detail_column",
         )
         return column
 
     def _risk_column(self) -> Vertical:
-        kev = (
-            "YES"
-            if self.cve.exploit_available and "cisa_kev" in self.cve.tags
-            else "NO"
-        )
+        kev = "YES" if self.cve.kev else "NO"
         column = Vertical(
             Static("Risk", classes="section_title"),
             Static(f"CVSS: {format_cvss(self.cve.cvss)}"),
-            Static(f"Vector: {self.cve.vector or 'N/A'}"),
+            Static(Text(f"Vector: {self.cve.vector or 'N/A'}")),
             Static(f"EPSS: {format_epss(self.cve.epss)}"),
             Static(f"EPSS Percentile: {format_epss(self.cve.epss_percentile)}"),
             Static(f"KEV: {kev}"),
@@ -324,7 +356,7 @@ class DetailScreen(Screen):
             return Static("N/A")
         products = Vertical(
             *[
-                Static(self._format_product(product))
+                Static(Text(one_line(self._format_product(product))))
                 for product in self.cve.affected_products
             ],
             classes="detail_products",
@@ -342,6 +374,40 @@ class DetailScreen(Screen):
             ],
             classes="detail_references",
         )
+
+    def _exploits_widget(self) -> Vertical:
+        if not self.exploits:
+            return Vertical(
+                Static(
+                    "None indexed. Refresh Exploit-DB in the shell or run "
+                    "`cveli exploits refresh`.",
+                    markup=False,
+                ),
+                classes="detail_references",
+            )
+        rows: list = []
+        for exploit in self.exploits:
+            rows.append(
+                Static(
+                    Text(
+                        f"EDB-{exploit.edb_id} · {exploit.date_published or 'N/A'} · "
+                        f"{exploit.platform or 'N/A'} · {exploit.type or 'N/A'} · "
+                        f"{'verified' if exploit.verified else 'unverified'} · "
+                        f"{one_line(exploit.author or 'N/A', 30)}\n"
+                        f"  {one_line(exploit.title, 100)}"
+                    )
+                )
+            )
+            rows.append(
+                Horizontal(
+                    Static("  Source"),
+                    Link(exploit.source_url, url=exploit.source_url),
+                    classes="reference_row",
+                )
+            )
+        rows.append(Static(Text(EXPLOIT_NOTICE), classes="muted"))
+        rows.append(Static(Text(EXPLOITDB_ATTRIBUTION), classes="muted"))
+        return Vertical(*rows, classes="detail_references")
 
     def _source_text(self) -> str:
         sources = " • ".join(self.cve.sources) if self.cve.sources else "N/A"
@@ -363,6 +429,10 @@ class DetailScreen(Screen):
             self.action_quit()
             event.stop()
             return
+        if event.key.lower() == "m":
+            self.action_template()
+            event.stop()
+            return
         if event.key in {"enter", "escape"}:
             self.action_back()
             event.stop()
@@ -370,86 +440,28 @@ class DetailScreen(Screen):
     def action_back(self) -> None:
         self.app.pop_screen()
 
+    def action_template(self) -> None:
+        from config.settings import get_settings
+
+        if not get_settings().feature_msf:
+            self.app.notify("Template generator is disabled.", severity="warning")
+            return
+        try:
+            from cli.tui.views.templates import TemplateScreen
+        except ImportError:  # pragma: no cover
+            return
+        self.app.push_screen(TemplateScreen(cve_id=self.cve.id))
+
     def action_quit(self) -> None:
+        if getattr(self.app, "is_shell", False):
+            self.app.pop_screen()
+            return
         self.app.return_to_main_menu = True
         self.app.exit()
 
 
 class SearchBrowserApp(App[None]):
-    CSS = """
-    Screen {
-        layout: vertical;
-    }
-    #search_title {
-        content-align: center middle;
-        padding: 1 0 0 0;
-        text-style: bold;
-    }
-    #search_summary, #search_help, #search_message {
-        padding: 0 1;
-    }
-    #search_help {
-        color: yellow;
-        text-style: bold;
-    }
-    #search_message {
-        color: $warning;
-        min-height: 1;
-    }
-    #results_table {
-        height: 1fr;
-        margin: 0 1;
-    }
-    #empty_state {
-        border: round $panel;
-        display: none;
-        height: auto;
-        margin: 1;
-        padding: 1 2;
-    }
-    #selection_input {
-        margin: 0 1;
-    }
-    .detail_shell {
-        height: 1fr;
-        padding: 1;
-    }
-    .detail_header {
-        border: round $accent;
-        padding: 0 1;
-        margin-bottom: 1;
-        text-style: bold;
-    }
-    .detail_top {
-        height: auto;
-    }
-    .detail_column {
-        width: 1fr;
-        border: round $panel;
-        padding: 0 1;
-        margin-right: 1;
-    }
-    .detail_section {
-        border: round $panel;
-        padding: 0 1;
-        margin-top: 1;
-    }
-    .section_title {
-        text-style: bold;
-        color: $text-accent;
-    }
-    .detail_help {
-        padding-top: 1;
-    }
-    .reference_row {
-        height: auto;
-        padding: 0;
-    }
-    Link {
-        color: cyan;
-        text-style: underline;
-    }
-    """
+    CSS_PATH = "cveli.tcss"
 
     BINDINGS = [Binding("ctrl+c", "quit", "Quit", show=False)]
 
@@ -459,6 +471,7 @@ class SearchBrowserApp(App[None]):
         self, results: list[CVEModel], source_note: str = "Source: CACHE"
     ) -> None:
         super().__init__()
+        apply_theme(self)
         self.pager = PagedResults(results)
         self.source_note = source_note
         self.return_to_main_menu = False
