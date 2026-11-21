@@ -125,9 +125,12 @@ class CodeBlock(Vertical):
         with Horizontal(classes="codeblock-bar"):
             yield Static(self.title or (self.language or "text"), markup=False)
             yield Button(self.copy_label, id="copy", variant="default")
+        area = TextArea(self.code, read_only=True)
+        if self.language and self.language in area.available_languages:
+            area.language = self.language
         area = TextArea(
             self.code,
-            language=self.language,
+            language=area.language,
             read_only=True,
             show_line_numbers=self.language == "ruby",
             soft_wrap=self.language != "ruby",
