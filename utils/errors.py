@@ -53,3 +53,39 @@ class FormatError(AppError):
             else f"{self.format_type} error",
             code=400,
         )
+
+
+class RateLimitError(AppError):
+    def __init__(self, message: str = "rate limit exceeded", retry_after: float = 0):
+        self.retry_after = retry_after
+        super().__init__(message, code=429)
+
+
+class PolicyError(AppError):
+    """Raised when a request violates a CVELI safety policy."""
+
+    def __init__(self, reason: str, rule: str | None = None) -> None:
+        self.reason = reason
+        self.rule = rule
+        super().__init__(reason, code=403)
+
+
+class AuthorizationRequiredError(AppError):
+    """Raised when an action needs an explicit authorized-use attestation."""
+
+    def __init__(self, message: str | None = None) -> None:
+        super().__init__(
+            message
+            or "Confirm you have written authorization or a lawful research purpose.",
+            code=401,
+        )
+
+
+class FeatureDisabledError(AppError):
+    def __init__(self, feature: str) -> None:
+        self.feature = feature
+        super().__init__(
+            f"The '{feature}' feature is disabled "
+            f"(set CVELI_FEATURE_{feature.upper()}=1 to enable).",
+            code=403,
+        )

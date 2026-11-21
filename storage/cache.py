@@ -1,61 +1,95 @@
 """
 Disk Cache Layer.
 
-Purpose: Provide local disk-based key-value caching using diskcache.
-Inputs: Cache keys, data values, TTL seconds.
-Outputs: Cached objects or None on miss.
-Responsibilities: Store HTTP responses and query results locally.
-Dependencies: diskcache, config.settings.
+Purpose: Local disk-based key-value caching (diskcache) for query results and
+feed snapshots. Location: ``settings.cache_dir / "diskcache"``; bounded by
+``settings.cache_size_limit_mb`` (least-recently-stored entries are culled).
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
 import diskcache
 
-_cache = None
+_cache: diskcache.Cache | None = None
+_cache_dir: str | None = None
 
 
 def get_cache_directory() -> str:
-    """Return cache directory path."""
-    project_root = Path(__file__).resolve().parent.parent
-    cache_dir = project_root / "storage" / ".cache"
-    return str(cache_dir)
+    from config.settings import get_settings
+
+    return str(Path(get_settings().cache_dir) / "diskcache")
 
 
 def get_cache() -> diskcache.Cache:
-    """Get global Cache instance."""
-    global _cache
-    if _cache is None:
-        cache_dir = get_cache_directory()
-        _cache = diskcache.Cache(cache_dir)
+    """Get the process-wide Cache instance (re-opened if the directory changes)."""
+    global _cache, _cache_dir
+    from config.settings import get_settings
+
+    directory = get_cache_directory()
+    if _cache is None or _cache_dir != directory:
+        if _cache is not None:
+            _cache.close()
+        limit = max(1, get_settings().cache_size_limit_mb) * 1024 * 1024
+        _cache = diskcache.Cache(directory, size_limit=limit)
+        _cache_dir = directory
     return _cache
 
 
 def cache_get(key: str, default: Any = None) -> Any:
-    """Get value from cache."""
     try:
-        cache = get_cache()
-        return cache.get(key, default=default)
+        return get_cache().get(key, default=default)
     except Exception:
         return default
 
 
 def cache_set(key: str, value: Any, expire: int | None = 3600) -> bool:
-    """Set value in cache with optional expiration in seconds."""
     try:
-        cache = get_cache()
-        cache.set(key, value, expire=expire)
+        get_cache().set(key, value, expire=expire)
         return True
     except Exception:
         return False
+
+
+def cache_delete_prefix(prefix: str) -> int:
+    removed = 0
+    try:
+        cache = get_cache()
+        for key in list(cache.iterkeys()):
+            if isinstance(key, str) and key.startswith(prefix):
+                removed += int(cache.delete(key))
+    except Exception:
+        return removed
+    return removed
 
 
 def cache_clear() -> bool:
-    """Clear all cached entries."""
     try:
-        cache = get_cache()
-        cache.clear()
+        get_cache().clear()
         return True
     except Exception:
         return False
+
+
+def cache_stats() -> dict[str, Any]:
+    try:
+        cache = get_cache()
+        return {
+            "directory": cache.directory,
+            "entries": len(cache),
+            "size_bytes": cache.volume(),
+            "size_limit_bytes": cache.size_limit,
+        }
+    except Exception as error:
+        return {"error": str(error)}
+
+
+def cache_cleanup() -> dict[str, int]:
+    """Expire stale entries and cull to the size limit."""
+    try:
+        cache = get_cache()
+        return {"expired": cache.expire(), "culled": cache.cull()}
+    except Exception:
+        return {"expired": 0, "culled": 0}

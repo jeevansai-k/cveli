@@ -17,6 +17,7 @@ from cli.commands.search_cmd import search_command
 from cli.commands.stats_cmd import stats_command
 from cli.commands.sync_cmd import sync_command
 from cli.commands.watchlist_cmd import watchlist_app
+from config.version import __version__
 
 console = Console()
 
@@ -56,7 +57,7 @@ def tui_command():
 @app.command("version")
 def version_command():
     """Display application version."""
-    console.print("[bold cyan]cveli[/bold cyan] v0.1.0 - Search-First CVE CLI/TUI Tool")
+    console.print(f"[bold]cveli[/bold] v{__version__} - Search-First CVE CLI/TUI Tool")
 
 
 @app.callback(invoke_without_command=True)

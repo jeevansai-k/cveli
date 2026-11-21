@@ -12,6 +12,7 @@ from typing import Any
 
 import httpx
 
+from config.version import USER_AGENT
 from core.models import CWEID, CVEModel
 from sources.base import BaseAdapter
 from utils.errors import NetworkError
@@ -29,7 +30,7 @@ class NVDAdapter(BaseAdapter):
 
     def __init__(self, api_key: str | None = None, timeout: int = 30):
         super().__init__(api_key=api_key, timeout=timeout)
-        self.headers = {"User-Agent": "cveli/0.1.0 (CVE Security CLI Tool)"}
+        self.headers = {"User-Agent": USER_AGENT}
         if self.api_key:
             self.headers["apiKey"] = self.api_key
 

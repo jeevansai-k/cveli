@@ -1,7 +1,11 @@
 """Shared CVELI branding helpers for CLI and TUI surfaces."""
 
-SAGE_GREEN = "#9caf88"
-SAGE_GREEN_ANSI = "\033[38;2;156;175;136m"
+from cli.tui.theme import OPUS_DARK
+from utils.color import hex_to_rgb
+
+SAGE_GREEN = OPUS_DARK.primary
+_R, _G, _B = hex_to_rgb(SAGE_GREEN)
+SAGE_GREEN_ANSI = f"\033[38;2;{_R};{_G};{_B}m"
 ANSI_RESET = "\033[0m"
 
 CVELI_ART = """\

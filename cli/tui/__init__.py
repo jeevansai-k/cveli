@@ -1,23 +1,6 @@
 """
-TUI (Terminal User Interface) Module.
+Textual terminal user interface.
 
-Purpose: Provide the interactive terminal UI using Textual framework.
-Inputs: User keyboard input, data from core/search module.
-Outputs: Rich text output to terminal (tables, panels).
-Responsibilities: Handle UI rendering and user interaction.
-Dependencies: textual for TUI framework, rich for formatting/colors.
-
-Functions/Classes:
-    - main.py: Main application class and screen definitions
-
-Example:
-    From cli/app.py:
-        # Start the TUI application
-        from cli.tui.main import MainApp
-
-        app = MainApp()
-        run(app)  # Run Textual main loop in CLI context
+Import concrete apps explicitly, e.g. ``from cli.tui.app import CveliApp``;
+this package intentionally has no import side effects.
 """
-
-# Re-export main module for convenient imports
-from .main import *  # noqa

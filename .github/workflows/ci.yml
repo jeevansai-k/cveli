@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Type-check new 2.0 modules
+        run: >
+          mypy config utils/http.py utils/color.py core/models.py core/safety.py
+          core/dork_policy.py core/dork_templates.py core/merge.py core/msf
+          services/exploitdb.py services/dorks.py services/msf_template.py
+          services/projects.py services/audit.py services/jobs.py
+          sources/exploitdb.py storage/migrations.py storage/system_repositories.py
+          storage/exploit_repository.py storage/research_repositories.py
+      - name: Tests with coverage
+        run: pytest --cov --cov-report=term-missing --cov-fail-under=80
+      - name: Generated Metasploit templates are valid Ruby
+        run: pytest -q tests/test_msf_templates.py -k ruby_syntax
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+      - name: Bandit (medium+)
+        run: bandit -q -r cli core services sources storage config utils -ll
+      - name: Dependency audit
+        run: pip-audit --skip-editable
