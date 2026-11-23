@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CVELI — Every CVE signal. One terminal.</title>
+  <meta name="description" content="CVELI is a search-first CVE intelligence tool for the terminal: NVD, CVE.org, CISA KEV, FIRST EPSS and Exploit-DB in one keyboard-driven app, with guard-railed OSINT dorks and non-weaponized Metasploit research templates.">
+  <meta property="og:title" content="CVELI — Every CVE signal. One terminal.">
+  <meta property="og:description" content="Five tabs per CVE → one terminal. Open source, MIT.">
+  <meta property="og:image" content="site/assets/cveli-launch-poster.jpg">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#0D1117">
+  <link rel="icon" href="site/assets/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="nav" id="top">
+    <div class="wrap nav-inner">
+      <a class="brand" href="#top" aria-label="CVELI home">
+        <img src="site/assets/icon.svg" alt="" width="34" height="34">
+        <span>CVELI</span>
+        <span class="ver">2.0</span>
+      </a>
+      <nav class="links" aria-label="Primary">
+        <a href="#features">Features</a>
+        <a href="#tour">Tour</a>
+        <a href="#guardrails">Guardrails</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark or light theme">
+          <svg class="i-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>
+        </button>
+        <a class="btn btn-ghost hide-sm" href="https://github.com/jeevansai-k/cveli">GitHub</a>
+        <a class="btn btn-primary" href="#install">Get CVELI</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- HERO -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-copy reveal">
+          <p class="eyebrow mono"><span class="dot"></span> v2.0 · now with Exploit-DB, Dork Builder &amp; research templates</p>
+          <h1>Every CVE signal.<br><span class="accent">One terminal.</span></h1>
+          <p class="lede">NVD, CVE.org, CISA KEV, FIRST EPSS and Exploit-DB used to mean five browser tabs per CVE. CVELI puts them behind one search: keyboard-first, works offline, and safe by design.</p>
+          <div class="cta-row">
+            <a class="btn btn-primary btn-lg" href="#install">Install in 30 seconds</a>
+            <a class="btn btn-ghost btn-lg" href="#launch">▶ Watch the 20-second launch</a>
+          </div>
+          <ul class="hero-meta mono" aria-label="Highlights">
+            <li>MIT licensed</li><li>Python 3.12+</li><li>Dark &amp; Light</li><li>No telemetry</li>
+          </ul>
+        </div>
+        <div class="hero-shot reveal">
+          <div class="term-glow"></div>
+          <img src="site/assets/screens/search.png" alt="CVELI searching CVE-2021-44228: critical, CVSS 10.0, EPSS 100%, CISA KEV listed, 3 Exploit-DB references" width="1600" height="966">
+          <div class="float-card fc-1"><span class="k mono">CVSS</span><b class="crit">10.0</b></div>
+          <div class="float-card fc-2"><span class="k mono">CISA KEV</span><b class="danger">✓ exploited</b></div>
+          <div class="float-card fc-3"><span class="k mono">Exploit-DB</span><b class="ok">3 refs</b></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOURCES STRIP -->
+    <section class="sources" aria-label="Data sources">
+      <div class="wrap">
+        <p class="muted mono center">One search reaches</p>
+        <ul class="source-list">
+          <li><span class="sd" style="--c:var(--info)"></span>NVD API 2.0</li>
+          <li><span class="sd" style="--c:var(--secondary)"></span>CVE.org</li>
+          <li><span class="sd" style="--c:var(--danger)"></span>CISA KEV</li>
+          <li><span class="sd" style="--c:var(--warning)"></span>FIRST EPSS</li>
+          <li><span class="sd" style="--c:var(--critical)"></span>Exploit-DB</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- LAUNCH VIDEO -->
+    <section class="section" id="launch">
+      <div class="wrap narrow center">
+        <h2 class="reveal">Twenty seconds. <span class="accent">Zero tabs.</span></h2>
+        <p class="lede reveal">Every frame is the real app: the Log4Shell search, the Dork Builder refusing a secret-hunting query, and a Metasploit template that ships no payload.</p>
+        <div class="video-frame reveal">
+          <video id="launch-video" controls playsinline preload="metadata" poster="site/assets/cveli-launch-poster.jpg">
+            <source src="site/assets/cveli-launch.mp4" type="video/mp4">
+            <a href="site/assets/cveli-launch.mp4">Download the launch video (MP4)</a>
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="section" id="features">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow mono">Features</p>
+          <h2>Built for the people who read <span class="accent">CVE-IDs</span> for a living.</h2>
+        </div>
+        <div class="grid-3">
+          <article class="card reveal">
+            <div class="ic">⌕</div>
+            <h3>Live-first search</h3>
+            <p>Keyword, vendor or exact CVE-ID. Results merge NVD, CVE.org, KEV and EPSS per CVE, so a partial KEV record never overwrites a richer NVD one.</p>
+            <code class="mono">cveli search CVE-2021-44228</code>
+          </article>
+          <article class="card reveal">
+            <div class="ic">⚑</div>
+            <h3>Exploit-DB intel</h3>
+            <p>46,000+ public exploit entries are indexed locally, searchable by CVE, EDB-ID, product (fuzzy), version, platform, type, author and date. Only metadata is stored, never exploit code.</p>
+            <code class="mono">cveli exploits search --cve …</code>
+          </article>
+          <article class="card reveal">
+            <div class="ic">⚲</div>
+            <h3>Dork Builder</h3>
+            <p>A username plus a site gives you previewed, explained Google queries, tuned for 22 social networks (<span class="mono">site:instagram.com/&lt;user&gt;</span>). Queries for secrets are refused.</p>
+            <code class="mono">cveli dork build -u @alice -c social</code>
+          </article>
+          <article class="card reveal">
+            <div class="ic">⎔</div>
+            <h3>Research templates</h3>
+            <p>Generate a Metasploit scaffold, a Markdown report and JSON metadata from any CVE or EDB entry. <span class="mono">check</span> returns Unknown and <span class="mono">exploit</span> always stops with <span class="mono">fail_with</span>.</p>
+            <code class="mono">cveli msf generate --cve …</code>
+          </article>
+          <article class="card reveal">
+            <div class="ic">◉</div>
+            <h3>Watchlists &amp; projects</h3>
+            <p>Track vendors, products and CWEs, and see what's new since your last check. Group CVEs, exploits and dorks into research projects.</p>
+            <code class="mono">cveli watchlist check</code>
+          </article>
+          <article class="card reveal">
+            <div class="ic">⛁</div>
+            <h3>Offline &amp; private</h3>
+            <p>Everything lives in local SQLite. Searches keep working when feeds go down. Usernames are redacted from logs, and metrics never leave your machine.</p>
+            <code class="mono">cveli doctor</code>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- TOUR -->
+    <section class="section alt" id="tour">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <p class="eyebrow mono">Product tour</p>
+          <h2>A real TUI, not a <span class="accent">wrapper around curl</span>.</h2>
+        </div>
+        <div class="tabs reveal" role="tablist" aria-label="Product tour">
+          <button role="tab" aria-selected="true" aria-controls="tab-panel" data-shot="search" data-cap="Search: one CVE, every signal (CVSS, EPSS, KEV, exploit count).">Search</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-panel" data-shot="detail" data-cap="Detail: description, affected products, Exploit-DB references and sources, all linked.">Detail</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-panel" data-shot="exploits" data-cap="Exploit-DB: filter 46k entries by platform, type, date and verification.">Exploit-DB</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-panel" data-shot="dorks" data-cap="Dork Builder: profile-URL queries with plain-English explanations and a copy button.">Dorks</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-panel" data-shot="templates" data-cap="Templates: a reviewed scaffold with a mandatory preflight checklist before export.">Templates</button>
+          <button role="tab" aria-selected="false" aria-controls="tab-panel" data-shot="dashboard" data-cap="Dashboard: stats, data-source freshness and every shortcut on one screen.">Dashboard</button>
+        </div>
+        <figure class="tour-shot reveal" id="tab-panel" role="tabpanel">
+          <img id="tour-img" src="site/assets/screens/search.png" alt="CVELI search view" width="1600" height="966">
+          <figcaption id="tour-cap" class="muted">Search: one CVE, every signal (CVSS, EPSS, KEV, exploit count).</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- GUARDRAILS -->
+    <section class="section" id="guardrails">
+      <div class="wrap guard-grid">
+        <div class="reveal">
+          <p class="eyebrow mono">Guardrails</p>
+          <h2>Powerful, <span class="accent">the safe way.</span></h2>
+          <p class="lede">CVELI is for authorized research and defensive triage. The safety lives in the code, not in a disclaimer.</p>
+        </div>
+        <ul class="checks reveal">
+          <li><b>Never contacts your targets.</b> No scanning, no exploitation, no requests to the systems you research.</li>
+          <li><b>No exploit code.</b> Exploit-DB metadata only, with attribution and safety labels on every entry.</li>
+          <li><b>Secret-hunting dorks are blocked.</b> That covers passwords, keys, tokens, dumps, <span class="mono">.env</span>, <span class="mono">wp-config</span> and admin consoles, even in custom queries.</li>
+          <li><b>Templates ship zero payloads.</b> Exporting one requires a research-only confirmation, and the export is audited.</li>
+          <li><b>Private by default.</b> Usernames and domains stay in memory unless you save them, and one command purges everything.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- INSTALL -->
+    <section class="section alt" id="install">
+      <div class="wrap narrow">
+        <div class="section-head center reveal">
+          <p class="eyebrow mono">Get started</p>
+          <h2>Three commands. <span class="accent">Then press</span> <kbd>/</kbd>.</h2>
+        </div>
+        <ol class="steps reveal">
+          <li><span class="num">1</span><div><b>Clone</b><pre class="mono"><code>git clone https://github.com/jeevansai-k/cveli &amp;&amp; cd cveli</code></pre></div><button class="copy" data-copy="git clone https://github.com/jeevansai-k/cveli && cd cveli">Copy</button></li>
+          <li><span class="num">2</span><div><b>Install</b><pre class="mono"><code>python3 -m venv .venv &amp;&amp; . .venv/bin/activate &amp;&amp; pip install -e .</code></pre></div><button class="copy" data-copy="python3 -m venv .venv && . .venv/bin/activate && pip install -e .">Copy</button></li>
+          <li><span class="num">3</span><div><b>Launch</b><pre class="mono"><code>cveli</code></pre></div><button class="copy" data-copy="cveli">Copy</button></li>
+        </ol>
+        <p class="muted center small">Optional: set <span class="mono">NVD_API_KEY</span> in <span class="mono">.env</span> to raise the NVD rate limit from 5 to 50 requests per 30 seconds.</p>
+      </div>
+    </section>
+
+    <!-- PRICING -->
+    <section class="section" id="pricing">
+      <div class="wrap">
+        <div class="section-head center reveal">
+          <p class="eyebrow mono">Pricing</p>
+          <h2>Pick a plan. <span class="accent">(They're all $0.)</span></h2>
+          <p class="lede">CVELI is MIT-licensed open source. The plans below just describe how people use it.</p>
+        </div>
+        <div class="grid-3 pricing">
+          <article class="plan reveal">
+            <h3>Analyst</h3>
+            <p class="price"><span>$0</span>/forever</p>
+            <p class="muted">For one person and one terminal.</p>
+            <ul><li>All five data sources</li><li>Exploit-DB index</li><li>Dork Builder &amp; templates</li><li>Dark &amp; Light themes</li></ul>
+            <a class="btn btn-ghost" href="#install">Install</a>
+          </article>
+          <article class="plan featured reveal">
+            <p class="badge mono">Most popular</p>
+            <h3>Team</h3>
+            <p class="price"><span>$0</span>/forever</p>
+            <p class="muted">For SOCs and security teams.</p>
+            <ul><li>Everything in Analyst</li><li>Shared research projects (export/import)</li><li>Cron-friendly <span class="mono">cveli jobs run due</span></li><li>JSON output for pipelines</li></ul>
+            <a class="btn btn-primary" href="#install">Install</a>
+          </article>
+          <article class="plan reveal">
+            <h3>Enterprise</h3>
+            <p class="price"><span>$0</span>/forever</p>
+            <p class="muted">For people who read licences.</p>
+            <ul><li>Everything in Team</li><li>MIT: fork it, audit it, ship it</li><li>Offline Exploit-DB via a local mirror</li><li>Feature flags per module</li></ul>
+            <a class="btn btn-ghost" href="https://github.com/jeevansai-k/cveli">Fork on GitHub</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section alt" id="faq">
+      <div class="wrap narrow">
+        <div class="section-head center reveal"><p class="eyebrow mono">FAQ</p><h2>Questions, <span class="accent">answered.</span></h2></div>
+        <div class="faq reveal">
+          <details><summary>Is CVELI a scanner?</summary><p>No. It never contacts the systems you research. It reads public vulnerability feeds and Exploit-DB metadata, and it builds search queries that you choose to open yourself.</p></details>
+          <details><summary>Does it download exploits?</summary><p>No. Only the public <span class="mono">files_exploits.csv</span> metadata is indexed. Each entry links to Exploit-DB with attribution and safety labels.</p></details>
+          <details><summary>Does it work offline?</summary><p>Yes. Everything is stored in local SQLite. Point <span class="mono">EXPLOITDB_PATH</span> at a local exploitdb checkout to refresh without a network connection.</p></details>
+          <details><summary>Do I need an NVD API key?</summary><p>No, but it helps: the NVD limit rises from 5 to 50 requests per 30 seconds. Put it in <span class="mono">.env</span>; it is never logged.</p></details>
+          <details><summary>Can I script it?</summary><p>Every TUI feature has a CLI equivalent with <span class="mono">--format json</span>, and documented exit codes for CI and pipelines.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final">
+      <div class="wrap center reveal">
+        <img src="site/assets/icon.svg" alt="" width="84" height="84">
+        <h2>Close the tabs. <span class="accent">Open CVELI.</span></h2>
+        <div class="cta-row center-row">
+          <a class="btn btn-primary btn-lg" href="#install">Get CVELI</a>
+          <a class="btn btn-ghost btn-lg" href="https://github.com/jeevansai-k/cveli">★ Star on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap foot-inner">
+      <p class="muted small">© 2026 CVELI · created by jeevansai-k · MIT License</p>
+      <p class="muted small">Exploit metadata © OffSec Exploit-DB (GPL-2.0). For authorized security research only.</p>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="site/app.js" defer></script>
+</body>
+</html>
