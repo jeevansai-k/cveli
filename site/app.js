@@ -46,10 +46,12 @@
   // Tour tabs
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
   var img = document.getElementById("tour-img"), cap = document.getElementById("tour-cap");
+  // screenshot folder taken from the markup, so the page works from / and from /site/
+  var shotDir = img ? img.getAttribute("src").replace(/[^/]+$/, "") : "assets/screens/";
   function select(tab, focus) {
     tabs.forEach(function (t) { var on = t === tab; t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1; });
     if (focus) tab.focus();
-    var src = "assets/screens/" + tab.dataset.shot + ".png";
+    var src = shotDir + tab.dataset.shot + ".png";
     if (img.getAttribute("src") === src) return;
     img.classList.add("fading");
     var pre = new Image();
@@ -68,7 +70,7 @@
     });
   });
   // warm the cache for the other screenshots
-  window.addEventListener("load", function () { tabs.forEach(function (t) { new Image().src = "assets/screens/" + t.dataset.shot + ".png"; }); });
+  window.addEventListener("load", function () { tabs.forEach(function (t) { new Image().src = shotDir + t.dataset.shot + ".png"; }); });
 
   // Reveal on scroll
   var els = document.querySelectorAll(".reveal");
