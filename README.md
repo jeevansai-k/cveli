@@ -43,7 +43,7 @@ Metasploit research templates — all styled with the new **Opus 5.5** theme.
 | Exploit-DB | Local index of the official `files_exploits.csv` (46k+ entries): search by CVE, EDB-ID, product (fuzzy), vendor, version, platform, type, author, date; cross-linked into every CVE |
 | Dork Builder | Username + site → previewed, explained, copyable Google queries; blocks secret/credential/dump patterns; opening in a browser needs an authorization confirmation and is rate-limited |
 | MSF templates | `.rb` scaffold + Markdown research report + JSON metadata for a CVE/EDB entry; no payload or exploit logic; export requires a research-only confirmation |
-| Opus 5.5 design | New shell (navigation, command bar, intel panel, command palette), **Dark** (default) and **Light** themes, WCAG AA contrast tested, responsive down to 76 columns |
+| Design | New shell (navigation, command bar, intel panel, command palette), **Dark** (default) and **Light** themes, WCAG AA contrast tested, responsive down to 76 columns |
 | Ops | XDG data paths, versioned DB migrations with automatic backup, `cveli doctor`, background jobs, local-only metrics, privacy purge |
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list and upgrade notes.
