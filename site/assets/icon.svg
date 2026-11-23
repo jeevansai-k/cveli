@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="t">
+  <title id="t">CVELI</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B232E"/>
+      <stop offset="1" stop-color="#0D1117"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#A6E3BC"/>
+      <stop offset="1" stop-color="#6FBF8E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.35" r="0.6">
+      <stop offset="0" stop-color="#8FD1A8" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#8FD1A8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#glow)"/>
+  <rect x="17.5" y="17.5" width="477" height="477" rx="110.5" fill="none" stroke="#3A4757" stroke-width="3"/>
+  <!-- shield -->
+  <path d="M256 92 L384 138 V246 C384 330 330 392 256 424 C182 392 128 330 128 246 V138 Z"
+        fill="none" stroke="url(#shield)" stroke-width="22" stroke-linejoin="round"/>
+  <!-- terminal prompt -->
+  <path d="M188 214 L240 256 L188 298" fill="none" stroke="#E6EDF3" stroke-width="24"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="258" y="286" width="72" height="24" rx="12" fill="#F0BE5B"/>
+</svg>

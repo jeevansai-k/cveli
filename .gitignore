@@ -94,3 +94,6 @@ run-cveli.txt
 
 # pytest-textual-snapshot report
 snapshot_report.html
+
+# /brag launch-video working files
+brag-output/

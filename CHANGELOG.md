@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+Project website and launch video:
+
+- New landing page in `site/` (Dark/Light, responsive), published with GitHub Pages.
+- 20-second launch video (`site/assets/cveli-launch.mp4`) built from real TUI captures.
+- New app icon (`site/assets/icon.svg`) and a rewritten README with the video, gallery and architecture.
+
 Dork Builder reliability for social media:
 
 - Fixed: pressing **Preview** a second time crashed the TUI (`DuplicateIds`).

@@ -1,33 +1,64 @@
-# CVELI
-
 <div align="center">
 
-```text
- ██████╗██╗   ██╗███████╗██╗     ██╗
-██╔════╝██║   ██║██╔════╝██║     ██║
-██║     ██║   ██║█████╗  ██║     ██║
-██║     ╚██╗ ██╔╝██╔══╝  ██║     ██║
-╚██████╗ ╚████╔╝ ███████╗███████╗██║
- ╚═════╝  ╚═══╝  ╚══════╝╚══════╝╚═╝
-```
+<img src="site/assets/icon.svg" alt="CVELI" width="132" height="132">
 
-**CVELI 2.0 — search-first CVE & vulnerability intelligence for the terminal.**
+# CVELI
 
-*Created by **jeevansai-k***
+### Every CVE signal. One terminal.
 
-![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![Textual](https://img.shields.io/badge/TUI-Textual-00C7B7?style=for-the-badge)
-![Typer](https://img.shields.io/badge/CLI-Typer%20%2B%20Rich-10B981?style=for-the-badge)
-![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-F59E0B?style=for-the-badge)
+<sub>NVD · CVE.org · CISA KEV · FIRST EPSS · Exploit-DB, behind one search, keyboard-first, offline-ready and safe by design.</sub>
+
+<br><br>
+
+<a href="https://jeevansai-k.github.io/cveli/"><img src="https://img.shields.io/badge/Website-jeevansai--k.github.io%2Fcveli-8FD1A8?style=for-the-badge&labelColor=0D1117" alt="Website"></a>
+<img src="https://img.shields.io/badge/version-2.0.0-9DB8FF?style=for-the-badge&labelColor=0D1117" alt="Version 2.0.0">
+<img src="https://img.shields.io/badge/python-3.12%2B-79C0FF?style=for-the-badge&logo=python&logoColor=white&labelColor=0D1117" alt="Python 3.12+">
+<img src="https://img.shields.io/badge/license-MIT-F0BE5B?style=for-the-badge&labelColor=0D1117" alt="MIT">
+<a href="https://github.com/jeevansai-k/cveli/actions/workflows/ci.yml"><img src="https://github.com/jeevansai-k/cveli/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+
+<br>
+
+**[Website](https://jeevansai-k.github.io/cveli/)** ·
+**[Quick start](#-60-second-quick-start)** ·
+**[Commands](#-the-field-manual)** ·
+**[Architecture](#-under-the-hood)** ·
+**[Contributing](#-join-the-watch)** ·
+**[Changelog](CHANGELOG.md)**
 
 </div>
 
-CVELI unifies **NVD**, **CVE.org**, **CISA KEV**, **FIRST EPSS** and **Exploit-DB
-metadata** in one fast, keyboard-first terminal app with an offline cache, a Google
-Dork Builder with safety guardrails, and a generator for *non-weaponized*
-Metasploit research templates — all styled with the new **Opus 5.5** theme.
+<br>
 
+<div align="center">
+
+<a href="site/assets/cveli-launch.mp4"><img src="site/assets/cveli-launch-preview.gif" alt="CVELI 2.0 launch video: five browser tabs collapse into one terminal; Log4Shell search showing CVSS 10.0, CISA KEV, EPSS 100% and 3 Exploit-DB refs; the Dork Builder blocking a secret-hunting query; a Metasploit template that ships no payload" width="860"></a>
+
+<sub>▲ The 20-second launch film. Every frame is the real app. With sound:</sub>
+
+<video src="https://github.com/jeevansai-k/cveli/raw/main/site/assets/cveli-launch.mp4" poster="https://github.com/jeevansai-k/cveli/raw/main/site/assets/cveli-launch-poster.jpg" controls muted playsinline width="860"></video>
+
+</div>
+
+---
+
+## 🗂️ The five-tab problem
+
+```text
+ ┌─ NVD ──┐┌─ CVE.org ─┐┌─ CISA KEV ─┐┌─ FIRST EPSS ─┐┌─ Exploit-DB ─┐     ← you, every CVE, every day
+ └────────┘└───────────┘└────────────┘└──────────────┘└──────────────┘
+                                   │
+                                   ▼
+                     $ cveli search CVE-2021-44228
+   CVE-2021-44228  ◆ CRITICAL  CVSS 10.0  EPSS 100.0%  KEV ✓  Exploit-DB 3 refs  Apache Log4j2…
+```
+
+Triage means opening the same five sources for every CVE: the score, the official
+record, "is it exploited?", "will it be exploited?" and "is there public exploit
+code?". **CVELI asks all five in one search**, merges the answers per CVE (a partial
+KEV record never overwrites a richer NVD one), caches them locally and shows them in
+a fast Textual TUI, or as JSON for your pipelines.
+
+> [!IMPORTANT]
 > **Authorized, defensive use only.** CVELI never exploits, scans or contacts the
 > systems you research. It does not download exploit code, scrape Google or
 > Exploit-DB, or build credential/secret-hunting queries. You are responsible for
@@ -35,7 +66,60 @@ Metasploit research templates — all styled with the new **Opus 5.5** theme.
 
 ---
 
-## What's new in 2.0
+## ✨ What's inside
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### ⌕ Live-first search
+Keyword, vendor or exact CVE-ID across NVD, CVE.org, KEV and EPSS, with filters for
+severity, CVSS, CWE, vendor, date range, KEV and public exploits.
+
+</td>
+<td width="50%" valign="top">
+
+### ⚑ Exploit-DB intel
+46,000+ entries indexed locally (FTS5): search by CVE, EDB-ID, fuzzy product,
+version, platform, type, author and date. **Metadata only, never exploit code.**
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### ⚲ Dork Builder
+Username + site → previewed, explained Google queries, tuned for 22 social networks.
+Secret-hunting patterns are **refused**, even in custom queries.
+
+</td>
+<td valign="top">
+
+### ⎔ Research templates
+A Metasploit `.rb` scaffold, a Markdown report and JSON metadata for any CVE or EDB
+entry. `check` → `Unknown`; `exploit` → always `fail_with`. Zero payloads.
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+### ◉ Watchlists & projects
+Track vendors, products and CWEs; see what's new since the last check; group CVEs,
+exploits and dorks into research projects.
+
+</td>
+<td valign="top">
+
+### ⛁ Offline & private
+Local SQLite + cache, stale-but-served data when feeds go down, usernames redacted
+from logs, no telemetry. `cveli privacy purge` wipes it all.
+
+</td>
+</tr>
+</table>
+
+### 🆕 What's new in 2.0
 
 | Area | Highlights |
 |---|---|
@@ -50,7 +134,29 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list and upgrade notes.
 
 ---
 
-## Quick start
+## 📸 Gallery
+
+<table>
+<tr>
+<td><img src="site/assets/screens/search.png" alt="Search view"><br><sub><b>Search</b>: one CVE, every signal</sub></td>
+<td><img src="site/assets/screens/detail.png" alt="CVE detail view"><br><sub><b>Detail</b>: products, Exploit-DB refs, sources</sub></td>
+</tr>
+<tr>
+<td><img src="site/assets/screens/exploits.png" alt="Exploit-DB view"><br><sub><b>Exploit-DB</b>: 46k entries, filtered</sub></td>
+<td><img src="site/assets/screens/dorks.png" alt="Dork Builder view"><br><sub><b>Dork Builder</b>: explained, copyable queries</sub></td>
+</tr>
+<tr>
+<td><img src="site/assets/screens/templates.png" alt="Templates view"><br><sub><b>Templates</b>: preflight checklist first</sub></td>
+<td><img src="site/assets/screens/dashboard.png" alt="Dashboard view"><br><sub><b>Dashboard</b>: stats and source freshness</sub></td>
+</tr>
+</table>
+
+---
+
+## 🚀 60-second quick start
+
+**Requirements:** Python 3.12+, a terminal with truecolor (most are), and optionally
+a free [NVD API key](https://nvd.nist.gov/developers/request-an-api-key).
 
 ```bash
 git clone https://github.com/jeevansai-k/cveli.git
@@ -61,19 +167,21 @@ python -m pip install -e ".[dev]"
 ```
 
 ```bash
-cveli            # open the TUI shell
-cveli --help     # all commands
-cveli doctor     # check settings, paths and data sources
+cveli                         # open the TUI shell, then press /
+cveli search CVE-2021-44228   # straight to Log4Shell
+cveli doctor                  # check settings, paths and data sources
 ```
 
-Optional: copy `.env.example` to `.env` and set `NVD_API_KEY` (raises the NVD
-rate limit from 5 to 50 requests per 30 s).
+> [!TIP]
+> Copy `.env.example` to `.env` and set `NVD_API_KEY` to raise the NVD rate limit
+> from 5 to 50 requests per 30 seconds. The key is never logged.
 
 ---
 
-## Command reference
+## 📖 The field manual
 
-### Search CVEs
+<details open>
+<summary><b>Search CVEs</b></summary>
 
 ```bash
 cveli search openssl                     # last year, live + cache
@@ -92,7 +200,10 @@ cveli search nginx --cache -f json       # offline, machine-readable
 | `--sort` | `published cvss epss updated id` |
 | `--format` | `table` (TUI on a terminal, plain table otherwise), `json`, `markdown`, `detail`, `plain` |
 
-### Exploit-DB research (metadata only)
+</details>
+
+<details>
+<summary><b>Exploit-DB research (metadata only)</b></summary>
 
 ```bash
 cveli exploits refresh                      # downloads files_exploits.csv if changed (24 h TTL)
@@ -109,7 +220,10 @@ Every result shows provenance (Exploit-DB link, original advisory), date, platfo
 type, author, verified status and **safety labels** (`Research only`,
 `Requires authorized environment`, `Proof-of-concept reference`, `Unverified`, …).
 
-### Google Dork Builder
+</details>
+
+<details>
+<summary><b>Google Dork Builder</b></summary>
 
 ```bash
 cveli dork sites
@@ -143,7 +257,10 @@ directories, custom. Every operator is explained. Queries for passwords, tokens,
 keys, config files, database dumps or breach data are **blocked**, including in
 custom queries. CVELI never runs searches itself.
 
-### Metasploit research templates
+</details>
+
+<details>
+<summary><b>Metasploit research templates</b></summary>
 
 ```bash
 cveli msf generate --cve CVE-2021-44228                 # preview .rb
@@ -157,7 +274,10 @@ an action method that always stops with `fail_with`, TODO markers and the
 mandatory preflight checklist (authorization, scope, version confirmation,
 backup/rollback, non-production validation, disclosure plan).
 
-### Other commands
+</details>
+
+<details>
+<summary><b>Everything else</b></summary>
 
 ```bash
 cveli sync --source all            # nvd, cve_org, cisa_kev, epss
@@ -172,9 +292,9 @@ cveli stats
 cveli cache status
 ```
 
----
+</details>
 
-## The TUI shell
+### ⌨️ The TUI shell
 
 ```text
 ┌ CVELI ─ [ Search CVE-ID, EDB-ID or keyword ( / ) ] ─────────── EDB 11-21 · KEV 11-21 ┐
@@ -211,7 +331,7 @@ scripts. `NO_COLOR` is honoured. A monospace font with good Unicode coverage
 
 ---
 
-## Data sources
+## 🛰️ Data sources
 
 | Source | Used for | Access |
 |---|---|---|
@@ -226,7 +346,7 @@ or descriptions.
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
 All settings come from the environment or a `.env` file (current directory or
 `~/.config/cveli/.env`); see [.env.example](.env.example). Key variables:
@@ -242,32 +362,111 @@ All settings come from the environment or a `.env` file (current directory or
 
 ---
 
-## Privacy
+## 🧠 Under the hood
 
-Usernames, domains and dorks stay in memory and are redacted from logs. They are
-stored only when you explicitly save them to a project. The audit log records
-event types and identifiers only (90-day retention); local metrics never leave
-your machine. `cveli privacy purge` deletes all saved research data.
+```mermaid
+flowchart LR
+    U([You]) --> CLI[Typer + Rich CLI]
+    U --> TUI[Textual TUI shell]
+    CLI --> S[services/<br>sync · exploitdb · dorks · msf_template · projects · audit]
+    TUI --> S
+    S --> SRC[sources/<br>NVD · CVE.org · KEV · EPSS · Exploit-DB]
+    S --> P[core/<br>models · merge · safety · dork_policy · templates]
+    S --> DB[(SQLite + FTS5<br>versioned migrations)]
+    SRC --> H[utils/http<br>retries · rate limits · Retry-After]
+    S --> C[(diskcache)]
+```
+
+| Layer | Path | Responsibility |
+|---|---|---|
+| Interface | `cli/commands/`, `cli/tui/` | Typer commands, Textual shell, themes (`cli/tui/theme.py`, `cveli.tcss`) |
+| Services | `services/` | Search & sync, Exploit-DB index, dork builder, template generator, projects, audit, jobs |
+| Domain | `core/` | Pydantic models, field-level merge, safety labels, dork policy, template renderers |
+| Sources | `sources/` | One adapter per feed (`fetch → parse → normalize`) on a shared HTTP client |
+| Storage | `storage/` | SQLAlchemy 2.0 models, repositories, numbered migrations with automatic backup |
+| Config | `config/` | Typed settings from env/`.env`, single version source |
+
+Deep dives: [architecture](docs/architecture.md) · [API & JSON contracts](docs/api.md) ·
+[operations](docs/operations.md) · [bug triage](docs/triage.md)
 
 ---
 
-## Development
+## 🛡️ Guardrails & privacy
+
+| CVELI will… | CVELI will never… |
+|---|---|
+| Read public vulnerability feeds and Exploit-DB **metadata** | Contact, scan or exploit the systems you research |
+| Link to Exploit-DB with attribution and safety labels | Download, store or display exploit code |
+| Build explained dork queries you choose to open | Run Google searches itself, or build secret/credential/dump queries |
+| Generate research scaffolds behind a confirmation | Emit payloads, request bodies or exploitation logic |
+| Keep everything local and redact usernames from logs | Send telemetry anywhere |
+
+Usernames, domains and dorks stay in memory unless you save them to a project. The
+audit log records event types and identifiers only (90-day retention).
+`cveli privacy purge` deletes all saved research data.
+
+---
+
+## 🧪 Development
 
 ```bash
-make test        # pytest
+make test        # pytest (~370 tests, network fully mocked)
 make lint        # ruff
 make typecheck   # mypy on the 2.0 modules
 make cov         # coverage report
-pytest -m live   # opt-in smoke tests against real services
+pytest -m live   # opt-in smoke tests against the real services
 ```
 
-Docs: [architecture](docs/architecture.md) · [API & JSON contracts](docs/api.md) ·
-[operations](docs/operations.md) · [bug triage](docs/triage.md) ·
-[contributing](docs/contributing.md)
+```text
+cveli/
+├── cli/          commands + Textual TUI (views, widgets, theme, cveli.tcss)
+├── core/         models, merge, safety, dork policy, templates
+├── services/     business logic
+├── sources/      feed adapters
+├── storage/      database, repositories, migrations
+├── config/       settings + version
+├── site/         the website (GitHub Pages) and launch video
+├── docs/         architecture, API, operations, triage, contributing
+└── tests/        pytest + Textual Pilot tests
+```
+
+CI (`.github/workflows/ci.yml`) runs ruff, mypy, pytest with coverage, pip-audit and
+bandit on every push.
 
 ---
 
-## License
+## 🤝 Join the watch
 
-MIT — see [LICENSE](LICENSE). Exploit-DB metadata is © OffSec, GPL-2.0, and is
-subject to the [Exploit-DB terms](https://www.exploit-db.com/terms).
+Bug reports, new data sources and new dork templates are all welcome.
+
+1. Fork and branch: `git checkout -b feat/my-idea`
+2. Write the regression test first, then the fix
+3. `make lint test` must be green
+4. Open a pull request describing the *why*
+
+Read [docs/contributing.md](docs/contributing.md) first. New dork templates must
+pass the safety policy, and nothing may contact a user-supplied target.
+
+### 🗺️ Roadmap
+
+- [x] Exploit-DB index and CVE cross-links
+- [x] Guard-railed Dork Builder with social-media profiles
+- [x] Non-weaponized research templates
+- [x] Dark & Light themes, WCAG AA contrast
+- [ ] OSV.dev and GitHub Security Advisories as sources
+- [ ] SBOM import (CycloneDX / SPDX) → matching CVEs
+- [ ] PyPI release (`pipx install cveli`)
+
+---
+
+## 📜 License
+
+MIT, see [LICENSE](LICENSE). Exploit-DB metadata is © OffSec, GPL-2.0, and subject
+to the [Exploit-DB terms](https://www.exploit-db.com/terms).
+
+<div align="center">
+<br>
+<img src="site/assets/icon.svg" alt="" width="40" height="40">
+<br>
+<sub>Built by <a href="https://github.com/jeevansai-k">jeevansai-k</a>. Close the tabs. Open CVELI.</sub>
+</div>
