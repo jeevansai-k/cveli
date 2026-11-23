@@ -19,7 +19,7 @@ from textual.widgets import (
 )
 
 from cli.tui.views.base import View
-from cli.tui.widgets import CodeBlock, ConfirmModal, EmptyState, Notice
+from cli.tui.widgets import CodeBlock, EmptyState, ExportConfirmModal, Notice
 from core.models import TemplateBundle
 from core.msf import PREFLIGHT_CHECKLIST
 from core.msf.render import to_json_text
@@ -77,13 +77,13 @@ class TemplatePreview(Vertical):
     def request_export(self) -> None:
         out_dir = self.query_one("#tpl_out", Input).value.strip() or "cveli-templates"
 
-        def done(confirmed: bool | None) -> None:
-            if not confirmed:
+        def done(formats: list[str] | bool | None) -> None:
+            if not formats or formats is True:
                 self.app.notify("Export cancelled.", timeout=2)
                 return
             try:
                 written = MsfTemplateService().export(
-                    self.bundle, out_dir, confirmed=True
+                    self.bundle, out_dir, formats=formats, confirmed=True
                 )
             except AppError as error:
                 self.app.notify(str(error), title="Export failed", severity="error")
@@ -93,7 +93,7 @@ class TemplatePreview(Vertical):
             )
 
         self.app.push_screen(
-            ConfirmModal(
+            ExportConfirmModal(
                 "Research-only confirmation",
                 "Before exporting, confirm every preflight item:\n"
                 + "\n".join(f"  • {item}" for item in PREFLIGHT_CHECKLIST),

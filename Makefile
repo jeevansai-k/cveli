@@ -1,7 +1,8 @@
 .PHONY: help install dev test cov lint typecheck security snapshots smoke clean run
 
 MYPY_TARGETS = config utils/http.py utils/color.py core/models.py core/safety.py \
-	core/dork_policy.py core/dork_templates.py core/merge.py core/msf \
+	core/dork_policy.py core/dork_templates.py core/social_platforms.py \
+	core/merge.py core/msf \
 	services/exploitdb.py services/dorks.py services/msf_template.py \
 	services/projects.py services/audit.py services/jobs.py sources/exploitdb.py \
 	storage/migrations.py storage/system_repositories.py \

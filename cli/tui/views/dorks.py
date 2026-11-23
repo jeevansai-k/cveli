@@ -212,10 +212,20 @@ class DorksView(View):
             self.app.notify(str(error), title="Blocked", severity="error")
 
     def save(self, dork: DorkQuery) -> None:
-        from services.projects import ProjectService
+        from cli.tui.widgets import ProjectPickerModal
 
-        try:
-            ProjectService().save_dork("Default research", dork.model_dump())
-            self.app.notify("Saved to project 'Default research'.", timeout=3)
-        except AppError as error:
-            self.app.notify(str(error), severity="error")
+        def done(project_id: str | None) -> None:
+            if not project_id:
+                return
+            from services.projects import ProjectService
+
+            service = ProjectService()
+            try:
+                service.save_dork(project_id, dork.model_dump())
+                name = service.projects.require(project_id)["name"]
+            except AppError as error:
+                self.app.notify(str(error), severity="error")
+                return
+            self.app.notify(f"Dork saved to project '{name}'.", timeout=3)
+
+        self.app.push_screen(ProjectPickerModal(f"Dork: {dork.query}"), done)

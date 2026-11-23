@@ -59,16 +59,16 @@ async def test_command_palette_lists_cveli_commands():
         provider = CveliCommands(app_.screen)
         names = [str(hit.display) async for hit in provider.discover()]
         assert "Go to Exploit-DB" in names
-        assert "Theme: Opus 5.5 Light" in names
+        assert "Theme: Light" in names
         hits = [hit async for hit in provider.search("CVE-2021-44228")]
         assert any("Open CVE-2021-44228" in str(hit.text) for hit in hits)
         theme_hit = next(
             h
             for h in [h async for h in provider.discover()]
-            if str(h.display) == "Theme: Opus 5.5 Light"
+            if str(h.display) == "Theme: Light"
         )
         theme_hit.command()
-        assert app_.theme == "opus-light"
+        assert app_.theme == "light"
 
 
 @pytest.mark.anyio
@@ -105,7 +105,7 @@ def test_cli_theme_flag_and_settings_command():
     assert runner.invoke(app, ["settings", "theme", "light"]).exit_code == 0
     assert SettingsRepository().get("theme") == "light"
     shown = runner.invoke(app, ["settings", "theme"])
-    assert "opus-light" in shown.stdout
+    assert "active: Light" in shown.stdout
     bad = runner.invoke(app, ["settings", "theme", "neon"])
     assert bad.exit_code != 0
     assert runner.invoke(app, ["--theme", "dark", "version"]).exit_code == 0

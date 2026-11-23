@@ -7,7 +7,7 @@ from rich.table import Table
 from rich.text import Text
 
 from cli.commands.common import console, emit_json
-from cli.tui.theme import THEME_CHOICES, resolve_theme_name
+from cli.tui.theme import THEME_CHOICES, theme_label
 from config.settings import get_settings
 from storage.system_repositories import SettingsRepository
 
@@ -22,13 +22,11 @@ settings_app = typer.Typer(
 def theme_command(
     choice: str = typer.Argument(None, help="dark, light or auto (omit to show)"),
 ):
-    """Show or persist the Opus 5.5 theme preference."""
+    """Show or persist the theme preference (dark, light or auto)."""
     repo = SettingsRepository()
     if choice is None:
         saved = repo.get("theme", "auto")
-        console.print(
-            f"Theme preference: {saved} (active: {resolve_theme_name(saved)})"
-        )
+        console.print(f"Theme preference: {saved} (active: {theme_label(saved)})")
         return
     choice = choice.lower().strip()
     if choice not in THEME_CHOICES:

@@ -91,3 +91,6 @@ mid.md
 completed.md
 cve-plan.md
 run-cveli.txt
+
+# pytest-textual-snapshot report
+snapshot_report.html

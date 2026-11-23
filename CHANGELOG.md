@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+Fixes from user testing of 2.0.0:
+
+- **Add to project** now asks which project to use: pick any existing project or
+  create a new one (CVE detail `P`, CVE search list `P`, Exploit-DB detail, Dork
+  Builder "Save to project"). Previously everything went to a "Default research"
+  project.
+- The research-only **export confirmation** now lets you choose the file types to
+  write (`.rb`, `.md`, `.json`); at least one must be selected.
+- **Watchlist**: new *Remove selected* button (with confirmation); the Delete key
+  also works.
+- **Themes** are now named **Dark** and **Light** everywhere (settings, toasts,
+  command palette, `cveli settings theme`). Textual's built-in themes are hidden
+  from the theme picker.
+- **Dork Builder**: 20 social networks added to the site list; new *Social media
+  accounts* category that searches all of them without a target site; platform
+  profile-URL queries (e.g. `snapchat.com/add/<user>`) so Snapchat and other
+  social usernames are found; `@handles`, platform names (`snapchat`, `twitter`)
+  and profile URLs are accepted as input.
+- The palette's **Keys** guide shows "To close this page select [keys] from
+  palette again".
+- **Borders and scrollbars**: replaced half-block "tall" borders and 2-column
+  scrollbars (which rendered with a sideways wobble in many fonts) with box-drawing
+  borders and solid 1-column scrollbars; focus changes colour only, so nothing
+  shifts.
+
 ## 2.0.0 — 2026-11-21
 
 ### Added

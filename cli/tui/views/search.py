@@ -5,6 +5,7 @@ from __future__ import annotations
 from rich.text import Text
 from textual import on, work
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import (
     Button,
@@ -36,6 +37,7 @@ class SearchView(View):
     view_id = "search"
     label = "Search CVEs"
     icon = "⌕"
+    BINDINGS = [Binding("p", "add_to_project", "Add to project")]
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
@@ -194,6 +196,17 @@ class SearchView(View):
     def _highlight(self, event: DataTable.RowHighlighted) -> None:
         if event.row_key is not None and event.row_key.value in self.results:
             self.app.show_intel(self.results[event.row_key.value])  # type: ignore[attr-defined]
+
+    def action_add_to_project(self) -> None:
+        table = self.query_one("#cve_results", DataTable)
+        if not table.row_count:
+            self.app.notify("Search for a CVE first.", severity="warning")
+            return
+        key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
+        if key:
+            from cli.tui.widgets import add_to_project
+
+            add_to_project(self.app, "cve", str(key), str(key))
 
     @on(DataTable.RowSelected, "#cve_results")
     def _open(self, event: DataTable.RowSelected) -> None:

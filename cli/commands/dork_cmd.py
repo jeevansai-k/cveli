@@ -112,7 +112,7 @@ def templates(output_format: str = typer.Option("table", "--format", "-f")):
 
 @dork_app.command("build")
 def build(
-    site: str = typer.Option(..., "--site", "-s", help="Target site/domain"),
+    site: str = typer.Option("", "--site", "-s", help="Target site/domain"),
     username: str = typer.Option("", "--username", "-u", help="Username or handle"),
     category: str = typer.Option(
         "profiles", "--category", "-c", help=", ".join(CATEGORIES)
@@ -152,7 +152,7 @@ def build(
 @dork_app.command("open")
 def open_dork(
     template: str = typer.Option(..., "--template", "-t", help="Template id to open"),
-    site: str = typer.Option(..., "--site", "-s"),
+    site: str = typer.Option("", "--site", "-s", help="Target site/domain"),
     username: str = typer.Option("", "--username", "-u"),
     category: str = typer.Option("profiles", "--category", "-c"),
     exact: bool = typer.Option(True, "--exact/--no-exact"),
@@ -187,7 +187,7 @@ def save(
     project: str = typer.Option(
         ..., "--project", "-p", help="Project name (created if new)"
     ),
-    site: str = typer.Option(..., "--site", "-s"),
+    site: str = typer.Option("", "--site", "-s", help="Target site/domain"),
     username: str = typer.Option("", "--username", "-u"),
     category: str = typer.Option("profiles", "--category", "-c"),
     exact: bool = typer.Option(True, "--exact/--no-exact"),

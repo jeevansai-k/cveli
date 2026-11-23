@@ -24,10 +24,8 @@ class SettingsView(View):
         yield Static("Settings", classes="view-title")
         yield Static("Appearance", classes="section-title")
         with RadioSet(id="theme_choice"):
-            yield RadioButton("Opus 5.5 Dark", value=saved == "dark", id="theme_dark")
-            yield RadioButton(
-                "Opus 5.5 Light", value=saved == "light", id="theme_light"
-            )
+            yield RadioButton("Dark", value=saved == "dark", id="theme_dark")
+            yield RadioButton("Light", value=saved == "light", id="theme_light")
             yield RadioButton(
                 "Follow terminal (auto)",
                 value=saved not in ("dark", "light"),

@@ -17,8 +17,9 @@ from textual.containers import Horizontal, VerticalScroll
 from textual.widgets import ContentSwitcher, Footer, Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from cli.tui.theme import DARK, apply_theme, resolve_theme_name
+from cli.tui.theme import DARK, apply_theme, resolve_theme_name, theme_label
 from cli.tui.views.base import View
+from cli.tui.widgets import CveliHelpMixin
 from config.settings import get_settings
 from config.version import __version__
 from core.formatter import format_cvss, format_epss, severity_label
@@ -106,7 +107,7 @@ class IntelPanel(VerticalScroll):
         self.query_one("#intel_body", Static).update("\n".join(lines))
 
 
-class CveliApp(App):
+class CveliApp(CveliHelpMixin, App):
     CSS_PATH = "cveli.tcss"
     TITLE = "CVELI"
     SUB_TITLE = f"v{__version__}"
@@ -280,7 +281,7 @@ class CveliApp(App):
 
         SettingsRepository().set("theme", choice)
         self.theme = resolve_theme_name(choice)
-        self.notify(f"Theme: {self.theme}", timeout=2)
+        self.notify(f"Theme: {theme_label(self.theme)}", timeout=2)
 
     def action_toggle_theme(self) -> None:
         self.set_theme_preference("light" if self.theme == DARK else "dark")

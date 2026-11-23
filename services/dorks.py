@@ -29,6 +29,7 @@ from core.dork_policy import (
 from core.dork_templates import (
     CATEGORIES,
     CATEGORY_RISK,
+    DOMAIN_OPTIONAL,
     FALSE_POSITIVE_EXCLUSIONS,
     NEEDS_USERNAME,
     SITE_PRESETS,
@@ -38,6 +39,12 @@ from core.dork_templates import (
     templates_for,
 )
 from core.models import DorkInput, DorkQuery
+from core.social_platforms import (
+    FOOTPRINT_DOMAINS,
+    SOCIAL_PLATFORMS,
+    platform_for,
+    profile_query,
+)
 from services.audit import audit
 from services.metrics import feature_used
 from utils.errors import (
@@ -188,7 +195,10 @@ class DorkBuilder:
                 "category", data.category, f"Choose one of: {', '.join(CATEGORIES)}"
             )
         with sensitive(data.username, data.target_domain):
-            domain = validate_domain(data.target_domain)
+            if category in DOMAIN_OPTIONAL and not data.target_domain.strip():
+                domain = ""
+            else:
+                domain = validate_domain(data.target_domain)
             username = ""
             if data.username.strip() or category in NEEDS_USERNAME:
                 username = validate_username(data.username)
@@ -210,6 +220,10 @@ class DorkBuilder:
                 "filetype": filetype or "pdf",
             }
             results = []
+            if category == "social":
+                results = self._social(clean, filetype)
+            elif category == "profiles" and platform_for(domain):
+                results = self._platform_profile(clean, platform_for(domain), filetype)
             for template in templates_for(category):
                 base = template.render(**values)
                 query = self._decorate(base, clean, filetype)
@@ -228,6 +242,75 @@ class DorkBuilder:
             feature_used("dorks", category=category)
             log.debug(f"Built {len(results)} dork(s) for category {category}")
             return results
+
+    def _platform_profile(
+        self, data: DorkInput, platform, filetype: str | None
+    ) -> list[DorkQuery]:
+        """Profile-URL and @handle queries tuned to a known social platform."""
+        user = data.username
+        paths = ", ".join(
+            f"{platform.domain}/{p.format(u=user.replace(' ', ''))}"
+            for p in platform.profile_paths
+        )
+        results = [
+            self._make(
+                "platform_profile_url",
+                f"{platform.label} profile page",
+                "profiles",
+                self._decorate(profile_query(platform, user), data, filetype),
+                f"Finds the public {platform.label} profile URL for the username "
+                f"({paths}).",
+                LOW,
+                data,
+            )
+        ]
+        handle_sites = " OR ".join(f"site:{site}" for site in platform.sites())
+        site_clause = (
+            handle_sites if len(platform.sites()) == 1 else f"({handle_sites})"
+        )
+        results.append(
+            self._make(
+                "platform_handle_mention",
+                f"@{user} mentions on {platform.label}",
+                "profiles",
+                self._decorate(f'{site_clause} "@{user}"', data, filetype),
+                f"Finds {platform.label} pages that mention the handle @{user}.",
+                LOW,
+                data,
+            )
+        )
+        return results
+
+    def _social(self, data: DorkInput, filetype: str | None) -> list[DorkQuery]:
+        """Username across social networks: one combined + one per platform."""
+        user = data.username
+        user_term = f'"{user}"' if data.exact_match else user
+        combined_sites = " OR ".join(f"site:{d}" for d in FOOTPRINT_DOMAINS)
+        results = [
+            self._make(
+                "social_footprint",
+                "Social media footprint",
+                "social",
+                self._decorate(f"{user_term} ({combined_sites})", data, filetype),
+                "Finds pages mentioning the username on the largest social networks.",
+                LOW,
+                data,
+            )
+        ]
+        for platform in SOCIAL_PLATFORMS:
+            slug = platform.label.lower().split(" ")[0].replace("/", "")
+            results.append(
+                self._make(
+                    f"social_{slug}",
+                    f"{platform.label} profile",
+                    "social",
+                    self._decorate(profile_query(platform, user), data, filetype),
+                    f"Finds the public {platform.label} profile URL for the username.",
+                    LOW,
+                    data,
+                )
+            )
+        return results
 
     def _custom(self, data: DorkInput, filetype: str | None) -> DorkQuery:
         raw = data.custom_query.strip()

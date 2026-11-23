@@ -13,6 +13,7 @@ from textual.screen import Screen
 from textual.widgets import DataTable, Header, Link, Static
 
 from cli.tui.theme import apply_theme
+from cli.tui.widgets import CveliHelpMixin
 from core.formatter import (
     build_reference_items,
     format_cvss,
@@ -316,7 +317,8 @@ class DetailScreen(Screen):
             self._section("References", self._references_widget()),
             self._section("Sources", Static(self._source_text())),
             Static(
-                "[Enter/Esc] Back    [M] Research template    [Q] Quit",
+                "[Enter/Esc] Back    [M] Research template    "
+                "[P] Add to project    [Q] Quit",
                 classes="detail_help",
                 markup=False,
             ),
@@ -433,6 +435,10 @@ class DetailScreen(Screen):
             self.action_template()
             event.stop()
             return
+        if event.key.lower() == "p":
+            self.action_add_to_project()
+            event.stop()
+            return
         if event.key in {"enter", "escape"}:
             self.action_back()
             event.stop()
@@ -452,6 +458,11 @@ class DetailScreen(Screen):
             return
         self.app.push_screen(TemplateScreen(cve_id=self.cve.id))
 
+    def action_add_to_project(self) -> None:
+        from cli.tui.widgets import add_to_project
+
+        add_to_project(self.app, "cve", self.cve.id, self.cve.id)
+
     def action_quit(self) -> None:
         if getattr(self.app, "is_shell", False):
             self.app.pop_screen()
@@ -460,7 +471,7 @@ class DetailScreen(Screen):
         self.app.exit()
 
 
-class SearchBrowserApp(App[None]):
+class SearchBrowserApp(CveliHelpMixin, App[None]):
     CSS_PATH = "cveli.tcss"
 
     BINDINGS = [Binding("ctrl+c", "quit", "Quit", show=False)]

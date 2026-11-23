@@ -365,7 +365,7 @@ async def test_tui_dork_preview_copy_and_attested_open(monkeypatch):
         view.build()
         await pilot.pause()
         blocks = list(view.query(CodeBlock))
-        assert blocks and blocks[0].code.startswith("site:github.com")
+        assert blocks and blocks[0].code.startswith("site:instagram.com")
         copied = []
         monkeypatch.setattr(app_, "copy_to_clipboard", copied.append)
         blocks[0].query_one("#copy").press()

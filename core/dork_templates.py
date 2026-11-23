@@ -12,22 +12,25 @@ import re
 from dataclasses import dataclass, field
 
 from core.dork_policy import LOW, MEDIUM
+from core.social_platforms import SOCIAL_PLATFORMS
 
-SITE_PRESETS: list[tuple[str, str]] = [
+SOCIAL_SITE_PRESETS: list[tuple[str, str]] = [
+    (platform.label, platform.domain)
+    for platform in SOCIAL_PLATFORMS
+    if platform.domain not in {"github.com", "medium.com"}
+]
+DEVELOPER_SITE_PRESETS: list[tuple[str, str]] = [
     ("GitHub", "github.com"),
     ("GitLab", "gitlab.com"),
-    ("LinkedIn", "linkedin.com"),
-    ("X / Twitter", "x.com"),
-    ("Reddit", "reddit.com"),
     ("Medium", "medium.com"),
     ("Stack Overflow", "stackoverflow.com"),
-    ("YouTube", "youtube.com"),
-    ("Mastodon (mastodon.social)", "mastodon.social"),
     ("Hacker News", "news.ycombinator.com"),
 ]
+SITE_PRESETS: list[tuple[str, str]] = SOCIAL_SITE_PRESETS + DEVELOPER_SITE_PRESETS
 
 CATEGORIES: dict[str, str] = {
     "profiles": "Public profiles",
+    "social": "Social media accounts (all platforms)",
     "posts": "Public posts",
     "documents": "Public documents",
     "files": "Public files",
@@ -42,7 +45,9 @@ CATEGORY_RISK = {
     "login": MEDIUM,
     "directories": MEDIUM,
 }
-NEEDS_USERNAME = {"profiles", "posts", "documents", "files", "code"}
+NEEDS_USERNAME = {"profiles", "social", "posts", "documents", "files", "code"}
+# Categories that search many platforms and therefore need no target site.
+DOMAIN_OPTIONAL = {"social"}
 FALSE_POSITIVE_EXCLUSIONS = ("-inurl:tag", "-inurl:search", "-inurl:hashtag")
 
 OPERATOR_EXPLANATIONS: dict[str, str] = {

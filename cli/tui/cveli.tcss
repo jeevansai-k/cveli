@@ -8,6 +8,85 @@ Screen {
     color: $foreground;
 }
 
+/* ---------- Clean boundaries ---------------------------------------------
+ * Textual's default "tall" borders and 2-column scrollbars are drawn with
+ * half-block glyphs (▊ ▎ ▐ ▌) that many terminal fonts render shifted by a
+ * fraction of a cell, so edges look like they wobble left and right. Use
+ * box-drawing borders and solid 1-column scrollbars everywhere instead, and
+ * change only the *colour* on focus so nothing moves.
+ */
+* {
+    scrollbar-size-vertical: 1;
+    scrollbar-size-horizontal: 1;
+    scrollbar-background: $surface;
+    scrollbar-background-hover: $surface;
+    scrollbar-background-active: $surface;
+    scrollbar-color: $border;
+    scrollbar-color-hover: $primary;
+    scrollbar-color-active: $primary;
+    scrollbar-corner-color: $surface;
+}
+Input, TextArea, OptionList, DataTable, RadioSet, Switch, Checkbox,
+SelectCurrent, SelectOverlay {
+    border: round $border;
+}
+Input:focus, TextArea:focus, OptionList:focus, DataTable:focus, RadioSet:focus,
+Switch:focus, Checkbox:focus, Select:focus > SelectCurrent,
+Select.-expanded > SelectCurrent {
+    border: round $focus-ring;
+    background-tint: $background 0%;
+}
+Button:focus, Button:hover {
+    background-tint: $background 0%;
+}
+RadioSet > RadioButton {
+    border: none;
+    background: $background;
+}
+/* Controls share the page background so only the border line is visible
+ * (box-drawing lines sit mid-cell; a different fill would show as a halo). */
+Input, TextArea, OptionList, DataTable, RadioSet, Switch, Checkbox,
+SelectCurrent, Button {
+    background: $background;
+}
+Checkbox {
+    height: 3;
+    padding: 0 1;
+}
+Button.-primary {
+    background: $primary;
+    color: $background;
+}
+Button.-warning {
+    background: $warning;
+    color: $background;
+}
+Button.-error {
+    background: $error;
+    color: $background;
+}
+Button {
+    border: round $border;
+}
+Button:hover {
+    border: round $primary;
+}
+Button:focus {
+    border: round $focus-ring;
+}
+Button.-primary {
+    border: round $primary;
+}
+Button.-warning {
+    border: round $warning;
+}
+Button.-error {
+    border: round $error;
+}
+Button:disabled {
+    border: round $border;
+}
+
 /* ---------- Command bar ------------------------------------------------- */
 #command_bar {
     height: 3;
@@ -24,11 +103,11 @@ Screen {
 }
 #command_bar #global_search {
     width: 1fr;
-    border: tall $border;
-    background: $background;
+    border: round $border;
+    background: $surface;
 }
 #command_bar #global_search:focus {
-    border: tall $focus-ring;
+    border: round $focus-ring;
 }
 #command_bar #source_status {
     width: auto;
@@ -42,13 +121,15 @@ Screen {
     height: 1fr;
 }
 #nav {
+    border: none;
+    border-right: solid $border;
     width: 24;
     background: $surface;
     border-right: solid $border;
     padding: 1 0;
 }
 #nav:focus {
-    border-right: thick $focus-ring;
+    border-right: solid $focus-ring;
 }
 #workspace {
     width: 1fr;
@@ -168,7 +249,7 @@ Screen.-medium #stat_row {
 
 /* ---------- Notices / states ------------------------------------------- */
 .notice {
-    border-left: thick $warning;
+    border-left: heavy $warning;
     background: $surface;
     padding: 0 1;
     margin: 1 0 0 0;
@@ -176,7 +257,7 @@ Screen.-medium #stat_row {
     color: $foreground;
 }
 .notice-info {
-    border-left: thick $accent;
+    border-left: heavy $accent;
 }
 EmptyState, ErrorState {
     height: auto;
@@ -200,19 +281,12 @@ LoadingIndicator {
 }
 
 /* ---------- Form controls ---------------------------------------------- */
-Input, Select, TextArea {
-    border: tall $border;
-}
-Input:focus, Select:focus, TextArea:focus, DataTable:focus, OptionList:focus,
-Switch:focus, Checkbox:focus, RadioSet:focus {
-    border: tall $focus-ring;
-}
 Button {
     margin-right: 1;
     min-width: 10;
 }
 Button:focus {
-    text-style: bold reverse;
+    text-style: bold;
 }
 .form-row {
     height: auto;
@@ -244,6 +318,12 @@ Button:focus {
     height: auto;
     padding: 1 0 0 1;
 }
+/* Checkbox subclasses Static; keep it a normal 3-row bordered control. */
+.form-row > Checkbox, #export_formats > Checkbox {
+    width: auto;
+    height: 3;
+    padding: 0 1;
+}
 /* result / state slots size to their content */
 #cve_state, #edb_state, #dork_preview, #tpl_result {
     height: auto;
@@ -259,7 +339,7 @@ TabbedContent {
 DataTable {
     height: 1fr;
     min-height: 6;
-    border: tall $border;
+    border: round $border;
 }
 #results_table {
     height: 1fr;
@@ -294,22 +374,39 @@ CodeBlock .codeblock-bar Button {
 }
 
 /* ---------- Modals ------------------------------------------------------ */
-ConfirmModal, CVEDetailModal {
+ConfirmModal, ProjectPickerModal, CVEDetailModal {
     align: center middle;
     background: $background 60%;
 }
-ConfirmModal > #dialog, CVEDetailModal > Container {
+ConfirmModal > #dialog, ProjectPickerModal > #dialog, CVEDetailModal > Container {
     width: 76;
     max-width: 95%;
     height: auto;
     max-height: 90%;
     background: $surface;
-    border: thick $warning;
+    border: heavy $warning;
     padding: 1 2;
 }
-ConfirmModal #dialog_buttons {
+ConfirmModal #dialog_buttons, ProjectPickerModal #dialog_buttons {
     height: auto;
     margin-top: 1;
+}
+ConfirmModal #export_formats {
+    height: auto;
+}
+ConfirmModal #export_formats > Checkbox {
+    width: auto;
+    margin-right: 1;
+}
+ProjectPickerModal #project_choices {
+    height: auto;
+    max-height: 12;
+}
+ProjectPickerModal #new_project_row {
+    height: auto;
+}
+ProjectPickerModal #new_project_name {
+    width: 1fr;
 }
 
 /* ---------- Search results browser (cveli search) ----------------------- */

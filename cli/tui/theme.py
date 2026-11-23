@@ -17,9 +17,11 @@ from dataclasses import dataclass
 from rich.theme import Theme as RichTheme
 from textual.theme import Theme
 
-DARK = "opus-dark"
-LIGHT = "opus-light"
+DARK = "dark"
+LIGHT = "light"
 THEME_CHOICES = ("dark", "light", "auto")
+THEME_LABELS = {DARK: "Dark", LIGHT: "Light"}
+LEGACY_NAMES = {"opus-dark": DARK, "opus-light": LIGHT}
 
 
 @dataclass(frozen=True)
@@ -200,11 +202,17 @@ def detect_system_theme(env: dict[str, str] | None = None) -> str:
 
 def resolve_theme_name(preference: str | None) -> str:
     choice = (preference or "").strip().lower()
-    if choice in ("dark", DARK):
+    choice = LEGACY_NAMES.get(choice, choice)
+    if choice == DARK:
         return DARK
-    if choice in ("light", LIGHT):
+    if choice == LIGHT:
         return LIGHT
     return detect_system_theme()
+
+
+def theme_label(name: str) -> str:
+    """Human-readable theme name shown in the UI ("Dark" / "Light")."""
+    return THEME_LABELS.get(resolve_theme_name(name), name.title())
 
 
 def preferred_theme_name() -> str:
@@ -228,10 +236,17 @@ def register_themes(app) -> None:
 
 
 def apply_theme(app, name: str | None = None) -> str:
-    """Register Opus themes on ``app`` and activate the preferred one."""
+    """Register the Dark/Light themes on ``app`` and activate the preferred one.
+
+    Textual's built-in themes are unregistered so the theme picker in the
+    command palette only offers CVELI's own Dark and Light themes.
+    """
     register_themes(app)
-    chosen = name or preferred_theme_name()
+    chosen = resolve_theme_name(name) if name else preferred_theme_name()
     app.theme = chosen
+    for builtin in list(app.available_themes):
+        if builtin not in PALETTES:
+            app.unregister_theme(builtin)
     return chosen
 
 

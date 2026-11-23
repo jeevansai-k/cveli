@@ -10,7 +10,7 @@ from textual.containers import Horizontal
 from textual.widgets import Button, DataTable, Input, Select, Static
 
 from cli.tui.views.base import View
-from cli.tui.widgets import EmptyState, call_safely
+from cli.tui.widgets import ConfirmModal, EmptyState, call_safely
 from core.text import one_line
 from services.watchlist import WatchlistService
 
@@ -21,7 +21,10 @@ class WatchlistView(View):
     view_id = "watchlist"
     label = "Watchlist"
     icon = "◉"
-    BINDINGS = [Binding("delete", "remove_selected", "Remove", show=True)]
+    BINDINGS = [
+        Binding("delete", "remove_selected", "Remove selected", show=True),
+        Binding("ctrl+d", "remove_selected", "Remove selected", show=False),
+    ]
 
     def compose(self) -> ComposeResult:
         yield Static("Watchlist", classes="view-title")
@@ -44,6 +47,18 @@ class WatchlistView(View):
             )
             yield Button("Add", id="add_target_btn", variant="primary")
             yield Button("Check", id="check_btn")
+        with Horizontal(classes="form-row"):
+            yield Button(
+                "Remove selected",
+                id="remove_target_btn",
+                variant="error",
+                disabled=True,
+            )
+            yield Static(
+                "Select a row, then press 'Remove selected' (or the Delete key).",
+                classes="muted",
+                markup=False,
+            )
         yield DataTable(id="watchlist_table", cursor_type="row")
         yield Static("", id="watch_results", markup=False)
 
@@ -58,6 +73,7 @@ class WatchlistView(View):
     def load_watchlist(self) -> None:
         table = self.query_one("#watchlist_table", DataTable)
         table.clear()
+        self.query_one("#remove_target_btn", Button).disabled = True
         for item in WatchlistService().list_targets():
             table.add_row(
                 item["target_type"],
@@ -85,14 +101,43 @@ class WatchlistView(View):
             value.value = ""
             self.load_watchlist()
 
-    def action_remove_selected(self) -> None:
+    def _selected_target(self) -> tuple[str, str] | None:
         table = self.query_one("#watchlist_table", DataTable)
         if not table.row_count:
+            return None
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+        if row_key.value is None:
+            return None
+        row = table.get_row(row_key)
+        return str(row_key.value), f"{row[0]} {row[1]}"
+
+    @on(DataTable.RowHighlighted, "#watchlist_table")
+    def _row_highlighted(self) -> None:
+        self.query_one("#remove_target_btn", Button).disabled = (
+            self._selected_target() is None
+        )
+
+    @on(Button.Pressed, "#remove_target_btn")
+    def action_remove_selected(self) -> None:
+        selected = self._selected_target()
+        if selected is None:
+            self.app.notify("Select a watchlist entry first.", severity="warning")
             return
-        key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key.value
-        if key and WatchlistService().remove_target(str(key)):
-            self.app.notify("Removed from watchlist.", timeout=3)
-            self.load_watchlist()
+        target_id, label = selected
+
+        def done(confirmed: bool | None) -> None:
+            if confirmed and WatchlistService().remove_target(target_id):
+                self.app.notify(f"Removed '{label}' from the watchlist.", timeout=3)
+                self.load_watchlist()
+
+        self.app.push_screen(
+            ConfirmModal(
+                "Remove from watchlist",
+                f"Stop watching {label}?",
+                "Yes, remove this watchlist entry.",
+            ),
+            done,
+        )
 
     @on(Button.Pressed, "#check_btn")
     def _check(self) -> None:

@@ -28,12 +28,12 @@ class CveliCommands(Provider):
         commands.extend(
             [
                 (
-                    "Theme: Opus 5.5 Dark",
+                    "Theme: Dark",
                     "Switch to the dark theme",
                     partial(app.set_theme_preference, "dark"),  # type: ignore[attr-defined]
                 ),
                 (
-                    "Theme: Opus 5.5 Light",
+                    "Theme: Light",
                     "Switch to the light theme",
                     partial(app.set_theme_preference, "light"),  # type: ignore[attr-defined]
                 ),

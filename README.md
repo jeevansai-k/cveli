@@ -43,7 +43,7 @@ Metasploit research templates — all styled with the new **Opus 5.5** theme.
 | Exploit-DB | Local index of the official `files_exploits.csv` (46k+ entries): search by CVE, EDB-ID, product (fuzzy), vendor, version, platform, type, author, date; cross-linked into every CVE |
 | Dork Builder | Username + site → previewed, explained, copyable Google queries; blocks secret/credential/dump patterns; opening in a browser needs an authorization confirmation and is rate-limited |
 | MSF templates | `.rb` scaffold + Markdown research report + JSON metadata for a CVE/EDB entry; no payload or exploit logic; export requires a research-only confirmation |
-| Opus 5.5 theme | New shell (navigation, command bar, intel panel, command palette), dark default + light mode, WCAG AA contrast tested, responsive down to 76 columns |
+| Opus 5.5 design | New shell (navigation, command bar, intel panel, command palette), **Dark** (default) and **Light** themes, WCAG AA contrast tested, responsive down to 76 columns |
 | Ops | XDG data paths, versioned DB migrations with automatic backup, `cveli doctor`, background jobs, local-only metrics, privacy purge |
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list and upgrade notes.
@@ -114,13 +114,20 @@ type, author, verified status and **safety labels** (`Research only`,
 ```bash
 cveli dork sites
 cveli dork build --username alice --site github.com
+cveli dork build -u @alice -s snapchat                      # platform names and @handles work
+cveli dork build -u alice --category social                 # 22 social networks, no site needed
 cveli dork build -u alice -s example.com --category documents --filetype pdf
 cveli dork build -s example.com --category subdomains        # medium risk, warned
 cveli dork open  -t public_profile_domain -u alice -s example.com   # asks for confirmation
 cveli dork save  --project "Case 42" -u alice -s example.com
 ```
 
-Categories: profiles, posts, documents, files, code, subdomains, login pages, public
+For social networks (Snapchat, Instagram, TikTok, X/Twitter, Facebook, Threads,
+Reddit, YouTube, LinkedIn, Telegram, Bluesky, …) CVELI matches each platform's
+public profile URL (e.g. `snapchat.com/add/<user>`, `tiktok.com/@<user>`), because
+the username often isn't in the indexed page text.
+
+Categories: profiles, social media accounts, posts, documents, files, code, subdomains, login pages, public
 directories, custom. Every operator is explained. Queries for passwords, tokens,
 keys, config files, database dumps or breach data are **blocked**, including in
 custom queries. CVELI never runs searches itself.
@@ -175,8 +182,10 @@ cveli cache status
 |---|---|
 | `1`–`8` | Switch view |
 | `/` or `Ctrl+F` | Global search (CVE-ID, `EDB-…` or keyword) |
-| `Ctrl+P` | Command palette (navigate, theme, refresh data, jump to CVE/EDB) |
-| `Ctrl+T` | Toggle Opus 5.5 dark / light |
+| `Ctrl+P` | Command palette (navigate, theme, refresh data, jump to CVE/EDB, **Keys** guide — select it again to close) |
+| `Ctrl+T` | Toggle Dark / Light theme |
+| `P` | Add the selected CVE / exploit / dork to an existing or new project |
+| `Delete` | Remove the selected watchlist entry (or use **Remove selected**) |
 | `Ctrl+B` / `F2` | Toggle navigation / intel panel |
 | `Enter` / `Esc` | Open / back · `M` research template from a detail screen |
 | `Alt+←/→` | Previous / next page in `cveli search` results |

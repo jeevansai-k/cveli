@@ -129,6 +129,8 @@ def _has_control(text: str) -> bool:
 
 def validate_username(value: str) -> str:
     cleaned = unicodedata.normalize("NFKC", value or "").translate(ZERO_WIDTH).strip()
+    # Social handles are often typed as "@alice"; the @ is not part of the name.
+    cleaned = cleaned.removeprefix("@").strip()
     if not cleaned:
         raise ValidationError("username", value, "Username cannot be empty.")
     if _has_control(cleaned) or not USERNAME_RE.match(cleaned):
@@ -148,8 +150,12 @@ def validate_domain(value: str) -> str:
     raw = raw.split("@")[-1].split(":", 1)[0].rstrip(".")
     if raw.startswith("*."):
         raw = raw[2:]
-    if raw.startswith("www."):
-        raw = raw[4:]
+    if raw.startswith(("www.", "m.")):
+        raw = raw.split(".", 1)[1]
+    if raw and "." not in raw:
+        from core.social_platforms import resolve_alias
+
+        raw = resolve_alias(raw) or raw
     if not raw:
         raise ValidationError(
             "target_domain", value, "Enter a domain like example.com."
