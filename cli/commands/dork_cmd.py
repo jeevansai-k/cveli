@@ -68,6 +68,8 @@ def _render(dorks: list[DorkQuery]) -> None:
             body.append(f"{op.explanation}\n")
         for warning in dork.warnings[1:]:
             body.append(f"\n⚠ {warning}", style="warning")
+        body.append("\nSearch link: ", style="muted")
+        body.append(dork.google_url, style=f"link {dork.google_url}")
         risk = {"low": "● LOW", "medium": "▲ MEDIUM", "high": "◆ HIGH"}[dork.risk_level]
         console.print(
             Panel(
@@ -179,7 +181,14 @@ def open_dork(
     if not authorized:
         authorized = typer.confirm(ATTESTATION, default=False)
     url = guard(lambda: builder.open(chosen, attested=authorized), exit_code=4)
-    console.print(f"[success]✓ Opened in your browser:[/success] {escape(url)}")
+    if builder.last_launched:
+        console.print(f"[success]✓ Opened in your browser:[/success] {escape(url)}")
+    else:
+        console.print(
+            "[warning]No browser could be started from this terminal. "
+            "Open this link manually:[/warning]"
+        )
+        print(url)
 
 
 @dork_app.command("save")

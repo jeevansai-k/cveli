@@ -5,7 +5,7 @@ from __future__ import annotations
 from textual import on
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Checkbox, Input, Select, Static
+from textual.widgets import Button, Checkbox, Input, Link, Select, Static
 
 from cli.tui.views.base import View
 from cli.tui.widgets import CodeBlock, ConfirmModal, EmptyState, Notice, RiskBadge
@@ -66,10 +66,10 @@ class DorksView(View):
             )
             yield Checkbox("Exact match", value=True, id="dork_exact")
             yield Checkbox("Exclude false positives", id="dork_fp")
-            yield Input(
-                placeholder="filetype (pdf, docx…)", id="dork_filetype", classes="field"
-            )
         with Horizontal(classes="form-row"):
+            yield Input(
+                placeholder="filetype (pdf…)", id="dork_filetype", classes="field"
+            )
             yield Input(
                 placeholder="Include phrase", id="dork_include", classes="field"
             )
@@ -118,6 +118,9 @@ class DorksView(View):
         ):
             return
         preview = self.query_one("#dork_preview", Vertical)
+        # Result cards carry no fixed IDs, so rebuilding while the previous
+        # cards are still being removed can never collide (this used to crash
+        # the app with DuplicateIds on the second "Preview").
         preview.remove_children()
         try:
             self.dorks = self.builder.build(self.collect())
@@ -126,59 +129,81 @@ class DorksView(View):
             preview.mount(EmptyState("Cannot build this query", str(error)))
             self.app.notify(str(error), title="Dork Builder", severity="error")
             return
-        for index, dork in enumerate(self.dorks):
-            card = Vertical(classes="card", id=f"dork_card_{index}")
-            preview.mount(card)
-            card.mount(
-                Horizontal(
-                    Static(
-                        f"{dork.label} · {dork.id}",
-                        classes="section-title",
-                        markup=False,
-                    ),
-                    RiskBadge(dork.risk_level),
-                    classes="card-row",
-                )
-            )
-            card.mount(CodeBlock(dork.query, title="query", copy_label="Copy"))
-            card.mount(Static(dork.explanation, classes="muted", markup=False))
-            card.mount(
+        if not self.dorks:
+            preview.mount(EmptyState("No queries for this input", "Try another site."))
+            return
+        preview.mount(
+            Static(
+                f"{len(self.dorks)} quer{'y' if len(self.dorks) == 1 else 'ies'} · "
+                "Copy a query, click its link, or press 'Open in browser'.",
+                classes="muted",
+                markup=False,
+            ),
+            *[self._card(index, dork) for index, dork in enumerate(self.dorks)],
+        )
+
+    def _card(self, index: int, dork: DorkQuery) -> Vertical:
+        children = [
+            Horizontal(
                 Static(
-                    "\n".join(
-                        f"  {op.op:<10} {op.explanation}" for op in dork.operators
-                    ),
+                    f"{index + 1}. {dork.label} · {dork.id}",
+                    classes="section-title",
                     markup=False,
-                )
-            )
-            for warning in dork.warnings[1:]:
-                card.mount(Notice(warning))
-            card.mount(
-                Horizontal(
-                    Button(
-                        "Open in browser", id=f"dork_open_{index}", variant="warning"
-                    ),
-                    Button("Save to project", id=f"dork_save_{index}"),
-                    classes="form-row",
-                )
-            )
+                ),
+                RiskBadge(dork.risk_level),
+                classes="card-row",
+            ),
+            CodeBlock(dork.query, title="query", copy_label="Copy"),
+            Static(dork.explanation, classes="muted", markup=False),
+            Static(
+                "\n".join(f"  {op.op:<10} {op.explanation}" for op in dork.operators),
+                markup=False,
+            ),
+            *[Notice(warning) for warning in dork.warnings[1:]],
+            Horizontal(
+                Static("Search link:", classes="label", markup=False),
+                Link(dork.google_url, url=dork.google_url),
+                classes="reference_row",
+            ),
+            Horizontal(
+                Button("Open in browser", classes="dork-open", variant="warning"),
+                Button("Copy link", classes="dork-copy-link"),
+                Button("Save to project", classes="dork-save"),
+                classes="form-row",
+            ),
+        ]
+        card = Vertical(*children, classes="card dork-card")
+        card.dork_index = index  # type: ignore[attr-defined]
+        return card
 
-    def _index(self, button_id: str, prefix: str) -> DorkQuery | None:
-        try:
-            return self.dorks[int(button_id.removeprefix(prefix))]
-        except (ValueError, IndexError):
-            return None
+    def _dork_for(self, button: Button) -> DorkQuery | None:
+        for node in button.ancestors:
+            index = getattr(node, "dork_index", None)
+            if index is not None:
+                return self.dorks[index] if index < len(self.dorks) else None
+        return None
 
-    @on(Button.Pressed)
-    def _card_buttons(self, event: Button.Pressed) -> None:
-        button_id = event.button.id or ""
-        if button_id.startswith("dork_open_"):
-            dork = self._index(button_id, "dork_open_")
-            if dork:
-                self.request_open(dork)
-        elif button_id.startswith("dork_save_"):
-            dork = self._index(button_id, "dork_save_")
-            if dork:
-                self.save(dork)
+    @on(Button.Pressed, ".dork-open")
+    def _open_pressed(self, event: Button.Pressed) -> None:
+        event.stop()
+        dork = self._dork_for(event.button)
+        if dork:
+            self.request_open(dork)
+
+    @on(Button.Pressed, ".dork-copy-link")
+    def _copy_link_pressed(self, event: Button.Pressed) -> None:
+        event.stop()
+        dork = self._dork_for(event.button)
+        if dork:
+            self.app.copy_to_clipboard(dork.google_url)
+            self.app.notify("Search link copied to the clipboard.", timeout=3)
+
+    @on(Button.Pressed, ".dork-save")
+    def _save_pressed(self, event: Button.Pressed) -> None:
+        event.stop()
+        dork = self._dork_for(event.button)
+        if dork:
+            self.save(dork)
 
     def request_open(self, dork: DorkQuery) -> None:
         if getattr(self.app, "research_attested", False):
@@ -204,12 +229,24 @@ class DorksView(View):
 
     def _open(self, dork: DorkQuery) -> None:
         try:
-            self.builder.open(dork, attested=True)
-            self.app.notify("Opened in your browser.", timeout=3)
+            url = self.builder.open(dork, attested=True)
         except RateLimitError as error:
             self.app.notify(str(error), title="Rate limited", severity="warning")
         except AppError as error:
             self.app.notify(str(error), title="Blocked", severity="error")
+            return
+        if self.builder.last_launched:
+            self.app.notify("Opened in your browser.", timeout=3)
+            return
+        # No browser could be launched from this terminal (SSH, WSL, VM, …).
+        self.app.copy_to_clipboard(url)
+        self.app.notify(
+            "No browser could be started from this terminal. The search link was "
+            "copied to your clipboard — paste it into your browser:\n" + url,
+            title="Open manually",
+            severity="warning",
+            timeout=12,
+        )
 
     def save(self, dork: DorkQuery) -> None:
         from cli.tui.widgets import ProjectPickerModal

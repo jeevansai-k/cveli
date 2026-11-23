@@ -214,7 +214,21 @@ def validate_filetype(value: str | None) -> str | None:
     return cleaned
 
 
-def evaluate(query: str, base_risk: str = LOW) -> PolicyDecision:
+def _mask_exempt(normalized: str, exempt: tuple[str, ...]) -> str:
+    """Replace validated user-supplied names (e.g. a username) with a neutral
+    token so a handle such as "dumpling_leaks" or "secretgarden" is not
+    mistaken for a request to find leaks or secrets. Usernames are validated
+    to contain no operators, quotes or colons, so masking them cannot hide an
+    operator from the rules below."""
+    for term in sorted({normalize(t) for t in exempt if t}, key=len, reverse=True):
+        if len(term) >= 2:
+            normalized = normalized.replace(term, "user")
+    return normalized
+
+
+def evaluate(
+    query: str, base_risk: str = LOW, exempt: tuple[str, ...] = ()
+) -> PolicyDecision:
     normalized = normalize(query)
     if not normalized:
         return PolicyDecision(False, HIGH, "Query is empty.", "empty")
@@ -224,8 +238,9 @@ def evaluate(query: str, base_risk: str = LOW) -> PolicyDecision:
         return PolicyDecision(
             False, HIGH, "Query contains control characters.", "control"
         )
+    checked = _mask_exempt(normalized, exempt)
     for rule, pattern, reason in _BLOCK_RULES:
-        if pattern.search(normalized):
+        if pattern.search(checked):
             return PolicyDecision(False, HIGH, reason, rule)
     risk = base_risk
     if risk == LOW and re.search(
@@ -237,9 +252,9 @@ def evaluate(query: str, base_risk: str = LOW) -> PolicyDecision:
     return PolicyDecision(True, risk)
 
 
-def enforce(query: str, base_risk: str = LOW) -> str:
+def enforce(query: str, base_risk: str = LOW, exempt: tuple[str, ...] = ()) -> str:
     """Return the risk level or raise ``PolicyError`` with the reason."""
-    decision = evaluate(query, base_risk)
+    decision = evaluate(query, base_risk, exempt)
     if not decision.allowed:
         raise PolicyError(decision.reason, rule=decision.rule)
     return decision.risk_level

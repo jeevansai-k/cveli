@@ -42,8 +42,14 @@ from core.models import DorkInput, DorkQuery
 from core.social_platforms import (
     FOOTPRINT_DOMAINS,
     SOCIAL_PLATFORMS,
+    SocialPlatform,
+    external_links_query,
+    handle_for,
+    mention_query,
     platform_for,
-    profile_query,
+    profile_links,
+    profile_url_query,
+    title_query,
 )
 from services.audit import audit
 from services.metrics import feature_used
@@ -57,6 +63,9 @@ from utils.errors import (
 from utils.logger import get_logger, sensitive
 
 log = get_logger(__name__)
+
+# Generic templates replaced by the platform-specific ones on social networks.
+PLATFORM_SUPERSEDED = {"profile_title", "profile_url"}
 
 GOOGLE_SEARCH_URL = "https://www.google.com/search?q={query}"
 AUTHORIZATION_WARNING = (
@@ -122,6 +131,7 @@ class DorkBuilder:
     ) -> None:
         self.opener = opener or (lambda url: webbrowser.open(url, new=2))
         self.limiter = limiter or OpenRateLimiter()
+        self.last_launched = False
 
     @staticmethod
     def _require_enabled() -> None:
@@ -158,6 +168,11 @@ class DorkBuilder:
             parts.append(f"filetype:{filetype}")
         return " ".join(parts)
 
+    @staticmethod
+    def _exempt(username: str) -> tuple[str, ...]:
+        name = (username or "").strip().removeprefix("@")
+        return (name, name.replace(" ", "")) if name else ()
+
     def _make(
         self,
         template_id: str,
@@ -169,7 +184,7 @@ class DorkBuilder:
         data: DorkInput,
         extra_warnings: tuple[str, ...] = (),
     ) -> DorkQuery:
-        risk = enforce(query, base_risk)
+        risk = enforce(query, base_risk, exempt=self._exempt(data.username))
         warnings = [AUTHORIZATION_WARNING, *extra_warnings]
         return DorkQuery(
             id=template_id,
@@ -222,9 +237,21 @@ class DorkBuilder:
             results = []
             if category == "social":
                 results = self._social(clean, filetype)
-            elif category == "profiles" and platform_for(domain):
-                results = self._platform_profile(clean, platform_for(domain), filetype)
+            platform = platform_for(domain) if domain else None
+            if category == "profiles" and platform:
+                results = self._platform_profile(clean, platform, filetype)
+                if not results:
+                    no_handle_note = (
+                        f"'{username}' has no characters that are valid in a "
+                        f"{platform.label} handle, so only a text search is shown."
+                    )
+                else:
+                    no_handle_note = ""
+            else:
+                no_handle_note = ""
             for template in templates_for(category):
+                if platform and template.id in PLATFORM_SUPERSEDED:
+                    continue
                 base = template.render(**values)
                 query = self._decorate(base, clean, filetype)
                 results.append(
@@ -236,50 +263,68 @@ class DorkBuilder:
                         template.explanation.format(**values),
                         CATEGORY_RISK.get(category, template.risk_level),
                         clean,
-                        template.warnings,
+                        template.warnings
+                        + ((no_handle_note,) if no_handle_note else ()),
                     )
                 )
+                no_handle_note = ""
             feature_used("dorks", category=category)
             log.debug(f"Built {len(results)} dork(s) for category {category}")
             return results
 
     def _platform_profile(
-        self, data: DorkInput, platform, filetype: str | None
+        self, data: DorkInput, platform: SocialPlatform, filetype: str | None
     ) -> list[DorkQuery]:
-        """Profile-URL and @handle queries tuned to a known social platform."""
-        user = data.username
-        paths = ", ".join(
-            f"{platform.domain}/{p.format(u=user.replace(' ', ''))}"
-            for p in platform.profile_paths
-        )
-        results = [
-            self._make(
+        """Queries tuned to a known social network (profile URL, title, links)."""
+        handle, notes = handle_for(platform, data.username)
+        if not handle:
+            return []
+        label = platform.label
+        extra = tuple(notes)
+        specs = [
+            (
                 "platform_profile_url",
-                f"{platform.label} profile page",
-                "profiles",
-                self._decorate(profile_query(platform, user), data, filetype),
-                f"Finds the public {platform.label} profile URL for the username "
-                f"({paths}).",
-                LOW,
-                data,
-            )
-        ]
-        handle_sites = " OR ".join(f"site:{site}" for site in platform.sites())
-        site_clause = (
-            handle_sites if len(platform.sites()) == 1 else f"({handle_sites})"
-        )
-        results.append(
-            self._make(
+                f"{label} profile page",
+                profile_url_query(platform, handle),
+                f"Matches the {label} profile itself "
+                f"({', '.join(profile_links(platform, handle))}) and its sub-pages. "
+                "No result usually means the account does not exist or is not "
+                "indexed by Google.",
+            ),
+            (
+                "platform_profile_title",
+                f"{label} profile by page title",
+                title_query(platform, handle),
+                f"{label} pages whose title contains the handle — profile pages "
+                "are titled with the account name.",
+            ),
+            (
                 "platform_handle_mention",
-                f"@{user} mentions on {platform.label}",
+                f"@{handle} mentions on {label}",
+                mention_query(platform, handle),
+                f"{label} posts, comments and pages that mention @{handle}.",
+            ),
+            (
+                "platform_external_links",
+                f"Sites linking to the {label} profile",
+                external_links_query(platform, handle),
+                "Other websites (link-in-bio pages, articles, other networks) that "
+                f"link to the {label} profile.",
+            ),
+        ]
+        return [
+            self._make(
+                tid,
+                tlabel,
                 "profiles",
-                self._decorate(f'{site_clause} "@{user}"', data, filetype),
-                f"Finds {platform.label} pages that mention the handle @{user}.",
+                self._decorate(query, data, filetype),
+                explanation,
                 LOW,
                 data,
+                extra if index == 0 else (),
             )
-        )
-        return results
+            for index, (tid, tlabel, query, explanation) in enumerate(specs)
+        ]
 
     def _social(self, data: DorkInput, filetype: str | None) -> list[DorkQuery]:
         """Username across social networks: one combined + one per platform."""
@@ -292,23 +337,33 @@ class DorkBuilder:
                 "Social media footprint",
                 "social",
                 self._decorate(f"{user_term} ({combined_sites})", data, filetype),
-                "Finds pages mentioning the username on the largest social networks.",
+                "Pages mentioning the username on the largest social networks.",
                 LOW,
                 data,
             )
         ]
+        skipped: list[str] = []
         for platform in SOCIAL_PLATFORMS:
+            handle, _notes = handle_for(platform, user)
+            if not handle:
+                skipped.append(platform.label)
+                continue
             slug = platform.label.lower().split(" ")[0].replace("/", "")
             results.append(
                 self._make(
                     f"social_{slug}",
                     f"{platform.label} profile",
                     "social",
-                    self._decorate(profile_query(platform, user), data, filetype),
-                    f"Finds the public {platform.label} profile URL for the username.",
+                    self._decorate(profile_url_query(platform, handle), data, filetype),
+                    f"Matches the {platform.label} profile "
+                    f"({', '.join(profile_links(platform, handle))}).",
                     LOW,
                     data,
                 )
+            )
+        if skipped:
+            results[0].warnings.append(
+                "Skipped (username not valid there): " + ", ".join(skipped)
             )
         return results
 
@@ -338,11 +393,18 @@ class DorkBuilder:
         self._require_enabled()
         if not attested:
             raise AuthorizationRequiredError()
-        enforce(dork.query, dork.risk_level)  # re-check in case it was edited
-        if not dork.google_url.startswith("https://www.google.com/search?q="):
-            raise PolicyError("Only Google search URLs can be opened.")
+        # re-check in case the query was edited after it was built
+        enforce(dork.query, dork.risk_level, exempt=self._exempt(dork.username))
+        if dork.google_url != GOOGLE_SEARCH_URL.format(query=quote_plus(dork.query)):
+            raise PolicyError("The search link does not match the previewed query.")
         self.limiter.check()
-        self.opener(dork.google_url)
+        try:
+            launched = self.opener(dork.google_url) is not False
+        except Exception:  # no usable browser in this environment
+            launched = False
+        self.last_launched = launched
+        if not launched:
+            return dork.google_url
         self.limiter.record()
         audit(
             "dork_opened",

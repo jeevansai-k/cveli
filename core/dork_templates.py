@@ -80,6 +80,8 @@ def explain_operators(query: str) -> list[dict[str, str]]:
         op = ("-" if match.group("neg") else "") + match.group("op")
         value = match.group("value")
         template = OPERATOR_EXPLANATIONS.get(op, "Search operator {value}.")
+        if op == "site" and "/" in value:
+            template = "Only pages under {value} (that profile URL and its sub-pages)."
         explained.append(
             {
                 "op": f"{op}:",

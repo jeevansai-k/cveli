@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+Dork Builder reliability for social media:
+
+- Fixed: pressing **Preview** a second time crashed the TUI (`DuplicateIds`).
+- Fixed: "Opened in your browser" was shown even when no browser could be
+  launched; CVELI now copies the link to the clipboard and says so (the CLI
+  prints the link).
+- Social profiles now use Google's URL-prefix form (`site:instagram.com/<user>`,
+  `site:snapchat.com/add/<user>`, `site:tiktok.com/@<user>`) plus title, mention
+  and "sites linking to the profile" queries — far more precise than the old
+  `inurl:` matching.
+- Per-platform handle rules: display names and invalid characters are converted
+  to a valid handle (with a note); Bluesky handles get `.bsky.social`; Threads
+  covers threads.net and threads.com.
+- Usernames are no longer falsely blocked by the safety policy (e.g.
+  `secret_garden`, `dumps`); operators, file types and phrases are still checked.
+- Every result card has a clickable search link and a *Copy link* button.
+- Verified with a sweep of ~24,000 generated queries across all platforms,
+  categories and tricky usernames (no errors).
+
+Earlier fixes from user testing of 2.0.0:
+
 Fixes from user testing of 2.0.0:
 
 - **Add to project** now asks which project to use: pick any existing project or

@@ -260,7 +260,7 @@ def test_snapchat_profile_dorks():
     )
     queries = {d.id: d.query for d in dorks}
     assert queries["platform_profile_url"] == (
-        'site:snapchat.com (inurl:"add/alice_snaps" OR inurl:"@alice_snaps")'
+        "(site:snapchat.com/add/alice_snaps OR site:snapchat.com/@alice_snaps)"
     )
     assert queries["platform_handle_mention"] == 'site:snapchat.com "@alice_snaps"'
     assert all(d.username == "alice_snaps" for d in dorks)
@@ -269,12 +269,12 @@ def test_snapchat_profile_dorks():
 @pytest.mark.parametrize(
     ("site", "expected"),
     [
-        ("tiktok.com", 'site:tiktok.com inurl:"@alice"'),
-        ("instagram.com", 'site:instagram.com inurl:"alice"'),
-        ("x.com", '(site:x.com OR site:twitter.com) inurl:"alice"'),
-        ("reddit.com", 'site:reddit.com (inurl:"user/alice" OR inurl:"u/alice")'),
-        ("linkedin.com", 'site:linkedin.com inurl:"in/alice"'),
-        ("bsky.app", 'site:bsky.app inurl:"profile/alice"'),
+        ("tiktok.com", "site:tiktok.com/@alice"),
+        ("instagram.com", "site:instagram.com/alice"),
+        ("x.com", "(site:x.com/alice OR site:twitter.com/alice)"),
+        ("reddit.com", "(site:reddit.com/user/alice OR site:reddit.com/u/alice)"),
+        ("linkedin.com", "site:linkedin.com/in/alice"),
+        ("bsky.app", "site:bsky.app/profile/alice.bsky.social"),
     ],
 )
 def test_platform_profile_patterns(site, expected):
@@ -320,7 +320,7 @@ def test_cli_social_dork_without_site():
     snap = runner.invoke(
         app, ["dork", "build", "-u", "alice", "-s", "snapchat", "-f", "plain"]
     )
-    assert 'inurl:"add/alice"' in snap.stdout
+    assert "site:snapchat.com/add/alice" in snap.stdout
 
 
 def test_social_dorks_still_block_secrets():

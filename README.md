@@ -122,10 +122,21 @@ cveli dork open  -t public_profile_domain -u alice -s example.com   # asks for c
 cveli dork save  --project "Case 42" -u alice -s example.com
 ```
 
-For social networks (Snapchat, Instagram, TikTok, X/Twitter, Facebook, Threads,
-Reddit, YouTube, LinkedIn, Telegram, Bluesky, …) CVELI matches each platform's
-public profile URL (e.g. `snapchat.com/add/<user>`, `tiktok.com/@<user>`), because
-the username often isn't in the indexed page text.
+For social networks (Instagram, Snapchat, TikTok, X/Twitter, Facebook, Threads,
+Reddit, YouTube, LinkedIn, Telegram, Bluesky, …) the username is often not in the
+indexed page text, so CVELI builds platform-specific queries:
+
+| Query | Example (Instagram, `@cristiano`) |
+|---|---|
+| Profile page (URL prefix) | `site:instagram.com/cristiano` |
+| Profile by page title | `site:instagram.com intitle:"@cristiano"` |
+| Mentions on the platform | `site:instagram.com "@cristiano"` |
+| Sites linking to the profile | `"instagram.com/cristiano" -site:instagram.com` |
+
+Display names ("Cristiano Ronaldo") are turned into a valid handle for the URL
+queries while text queries keep the full name. Every result has a clickable
+search link and a *Copy link* button; if no browser can be launched from your
+terminal (SSH, WSL, VMs) the link is copied to the clipboard instead.
 
 Categories: profiles, social media accounts, posts, documents, files, code, subdomains, login pages, public
 directories, custom. Every operator is explained. Queries for passwords, tokens,
